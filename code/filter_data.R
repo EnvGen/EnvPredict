@@ -13,7 +13,7 @@ if ( ! "argparser" %in% installed.packages()[,"Package"]) {
 }
 
 if ( ! "DiagrammeRsvg" %in% installed.packages()[,"Package"]) {
-devtools::install_github('rich-iannone/DiagrammeRsvg')
+  devtools::install_github('rich-iannone/DiagrammeRsvg')
 }
 
 
@@ -397,6 +397,15 @@ for (i in 1:length(clade_counts_18S)) {
               sep = '\t', row.names = TRUE, col.names = TRUE)
 }
 
-gsave.image('read_data.Rdata')
+## Save normalized count tables
+
+write.table(norm_seqtab_16S,
+            file = paste('../seq_data/combined/16S/norm_seqtab_16S.tsv', sep = ''),
+            sep = '\t', row.names = TRUE, col.names = TRUE)
+write.table(norm_seqtab_18S,
+            file = paste('../seq_data/combined/18S/norm_seqtab_18S.tsv', sep = ''),
+            sep = '\t', row.names = TRUE, col.names = TRUE)
+
+save.image('read_data.Rdata')
 
 ### FInished reading data ###
