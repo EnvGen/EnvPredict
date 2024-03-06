@@ -349,6 +349,18 @@ dim(spiketab_16S)
 spike_18S_ix = agrep(spike_18S, asv_18S)
 spiketab_18S = seqtab_18S[spike_18S_ix, ]
 
+## Exclude spike reads and Metazoa from taxa 
+
+ix_taxa_16S =  setdiff(1:nrow(taxa_16S), spike_16S_ix)
+taxa_16S = taxa_16S[ix_taxa_16S,]
+seqtab_16S = seqtab_16S[ix_taxa_16S,]
+
+ix_taxa_18S =  setdiff(1:nrow(taxa_18S), spike_18S_ix)
+ix_taxa_18S = intersect(ix_taxa_18S, which(taxa_18S[,4] != 'Metazoa' | is.na(taxa_18S[,4])))
+ix_taxa_18S = union(ix_taxa_18S, which(is.na(taxa_18S[,3])))
+taxa_18S = taxa_18S[ix_taxa_18S,]
+seqtab_18S = seqtab_18S[ix_taxa_18S,]
+
 ### Filter samples ###
 
 ## Adjust seqtab colnames
@@ -359,11 +371,6 @@ colnames(seqtab_16S) = gsub(colnames(seqtab_16S), pattern = '_16S', replacement 
 
 colnames(seqtab_18S) = gsub(colnames(seqtab_18S), pattern = '^X', replacement = '')
 colnames(seqtab_16S) = gsub(colnames(seqtab_16S), pattern = '^X', replacement = '')
-
-save.image('in_progress.Rsession')
-
-## Load saved image
-load(file = 'in_progress.Rsession')
 
 ## Pick only samples which are in the seqtab
 
@@ -415,18 +422,6 @@ seqtab_18S = seqtab_18S[,ix]
 ## Since they are practically the same sampling location
 
 metadata$station_name[metadata$station_name == 'NB1 / B3'] = 'B7'
-
-## Exclude spike reads and Metazoa from taxa 
-
-ix_taxa_16S =  setdiff(1:nrow(taxa_16S), spike_16S_ix)
-taxa_16S = taxa_16S[ix_taxa_16S,]
-seqtab_16S = seqtab_16S[ix_taxa_16S,]
-
-ix_taxa_18S =  setdiff(1:nrow(taxa_18S), spike_18S_ix)
-ix_taxa_18S = intersect(ix_taxa_18S, which(taxa_18S[,4] != 'Metazoa' | is.na(taxa_18S[,4])))
-ix_taxa_18S = union(ix_taxa_18S, which(is.na(taxa_18S[,3])))
-taxa_18S = taxa_18S[ix_taxa_18S,]
-seqtab_18S = seqtab_18S[ix_taxa_18S,]
 
 ### Analyze nr of reads per sample ###
 ### Exclude under/overssequenced samples ###
