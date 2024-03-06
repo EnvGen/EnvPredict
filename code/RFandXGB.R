@@ -39,14 +39,17 @@ if(length(new.packages) >0 ) {
 suppressPackageStartupMessages(library("argparser"))
 
 # arguments
-p <- arg_parser("clean_dataset.R")
+p <- arg_parser("Read datasets")
 p <- add_argument(p, "-b", help="16S_ASV sequences", default="../seq_data/combined/16S/asvs_16S.txt")
 p <- add_argument(p, "-e", help="18S_ASV sequences", default="../seq_data/combined/18S/asvs_18S.txt")
 p <- add_argument(p, "-n", help="16S_count table", default="../seq_data/combined/16S/seqtab_16S.tsv")
 p <- add_argument(p, "-y", help="18S_count table", default="../seq_data/combined/18S/seqtab_18S.tsv")
+p <- add_argument(p, "-f", help="Barrnap-filered 16S ASV ids", default="../seq_data/combined/barrnap_cleaned_16S_18S/ASV_IDs_16S.txt")
+p <- add_argument(p, "-g", help="Barrnap-filered 16S ASV ids", default="../seq_data/combined/barrnap_cleaned_16S_18S/ASV_IDs_18S.txt")
 p <- add_argument(p, "-m", help="Metadata", default="../env_data/combined/physical_chemical_processed.tsv")
 # p <- add_argument(p, "-a", help="Abiotic parameters", default="contextual_data/physical_chemical_data_2019-2020_2022-03-16.txt")
 p <- add_argument(p, "-z", help="taxa_16S table", default="../seq_data/combined/16S/taxa_16S.tsv")
+p <- add_argument(p, "-s", help="taxa_16S SILVA table", default="../seq_data/combined/16S/taxa_16S_SILVA.tsv")
 p <- add_argument(p, "-v", help="taxa_18S table", default="../seq_data/combined/18S/taxa_18S.tsv")
 p <- add_argument(p, "-w", help="working directory", default="//wsl.localhost/Ubuntu/home/krzjur/EnvPredict/code")
 # p <- add_argument(p, "-d", help="Minimum depth", default=10)
@@ -328,36 +331,59 @@ asv_18S = toupper(asv_18S)
 
 # load tax tables
 taxa_16S = as.matrix(read.table(argv$z, sep = '\t'))
+taxa_16S_silva = as.matrix(read.table(argv$s, sep = '\t'))
 taxa_18S = as.matrix(read.table(argv$v, sep = '\t'))
-#### remove Barnp taxonomy affected 
+
+## Keep only ASVs identified as 16S/18S by Barrnap
+
+barrnap_16S_ids = as.vector(read.csv(argv$f, sep = '\t', header = FALSE)[[1]])
+barrnap_18S_ids = as.vector(read.csv(argv$g, sep = '\t', header = FALSE)[[1]])
+
+taxa_16S = taxa_16S[rownames(taxa_16S) %in% barrnap_16S_ids,]
+taxa_16S_silva = taxa_16S_silva[rownames(taxa_16S_silva) %in% barrnap_16S_ids,]
+taxa_18S = taxa_18S[rownames(taxa_18S) %in% barrnap_18S_ids,]
+
+seqtab_16S = seqtab_16S[rownames(seqtab_16S) %in% barrnap_16S_ids,]
+seqtab_18S = seqtab_18S[rownames(seqtab_18S) %in% barrnap_18S_ids,]
+
+asv_16S = asv_16S[names(asv_16S) %in% barrnap_16S_ids]
+asv_18S = asv_18S[names(asv_18S) %in% barrnap_18S_ids]
+
+
 #load metadata file
 metadata = read.delim(paste(argv$m))
 #### Other data (phyto,ect)
+
+## Exclude spike reads - not needed with Barrnap!
 #these are the spike DNA sequences
-spike_16S = 'CGGGCAGCTCTCGATAACCGGCGGAAGGTGGTAGCCACGGACAGGATCAGAACAATTAGAAGTGCCGCAGGTGGCCAAGTCCCCCGGACACAAGACGAGGCCGGAGGCCTGGTATATACACGTAGCTAAGAAGAGCTCATCCAGACTGGGAACGGTGTGCCAGCAGCCGCGGTAACATCACCACAACGTATTCGGTCACAAATTGATCGGAGGGAGAAATCGTCCGCAGGATCTCAAACTTTAACTAAGGACTAGTACTACATAGGCTCGAGAAGAGCTACCGTTTGCAGGGTCGCCGGGTACCGCTTAACCATAAAAGATCCACTCAGGTAGCCGTCCAGTTTCCTCTGAAATGATGGGGCGAGAAACACGGCTGGGCGTTATACGAGTGCTTTAGAATATGAGGAGAGACAGGGGTATATTCAAGG'
-spike_18S = 'CTTCGTTATCGTCACGGAGAGAACTGCCTTTAGCGATCTGTCTAGAGACCCGCCAAATATAAGCCTTGGGGTTATTAACAAAGACGCCAAACACTAGTGAATATGACAGTGAAGGGGTGTGAGATAGCTTTACTGGGTGAGAAAACACTCGTTAAAAAGAATTAGACCGGATAATCCCCGAGGGGCCGTAGGCATGGACTTGTCGTTGCCACCGAGCATAGCGGTTTCGAAATAGCCGAGATGGGCACTGGCGAATTAACCCACTGGTTTATATGGATCCGATGGGTTCACTTAATAAGCTCGTACCAGGGATGAATAAAGCGTTACGAGAATTATAAACATGGAGTTCCTATTGATTTGAGGTTAATACCGAACGGGAACATTTGTCGATCATGCTTCACATAGAGT'
+# spike_16S = 'CGGGCAGCTCTCGATAACCGGCGGAAGGTGGTAGCCACGGACAGGATCAGAACAATTAGAAGTGCCGCAGGTGGCCAAGTCCCCCGGACACAAGACGAGGCCGGAGGCCTGGTATATACACGTAGCTAAGAAGAGCTCATCCAGACTGGGAACGGTGTGCCAGCAGCCGCGGTAACATCACCACAACGTATTCGGTCACAAATTGATCGGAGGGAGAAATCGTCCGCAGGATCTCAAACTTTAACTAAGGACTAGTACTACATAGGCTCGAGAAGAGCTACCGTTTGCAGGGTCGCCGGGTACCGCTTAACCATAAAAGATCCACTCAGGTAGCCGTCCAGTTTCCTCTGAAATGATGGGGCGAGAAACACGGCTGGGCGTTATACGAGTGCTTTAGAATATGAGGAGAGACAGGGGTATATTCAAGG'
+# spike_18S = 'CTTCGTTATCGTCACGGAGAGAACTGCCTTTAGCGATCTGTCTAGAGACCCGCCAAATATAAGCCTTGGGGTTATTAACAAAGACGCCAAACACTAGTGAATATGACAGTGAAGGGGTGTGAGATAGCTTTACTGGGTGAGAAAACACTCGTTAAAAAGAATTAGACCGGATAATCCCCGAGGGGCCGTAGGCATGGACTTGTCGTTGCCACCGAGCATAGCGGTTTCGAAATAGCCGAGATGGGCACTGGCGAATTAACCCACTGGTTTATATGGATCCGATGGGTTCACTTAATAAGCTCGTACCAGGGATGAATAAAGCGTTACGAGAATTATAAACATGGAGTTCCTATTGATTTGAGGTTAATACCGAACGGGAACATTTGTCGATCATGCTTCACATAGAGT'
+# 
+# # For 16S - identify spike ASVs
+# spike_16S_ix = agrep(spike_16S, asv_16S)
+# spiketab_16S = seqtab_16S[spike_16S_ix, ]
+# dim(spiketab_16S)
+# 
+# ## Check if spike ASVs are unannotated
+# # taxa_16S[spike_16S_ix,]
+# 
+# # For 18S - identify spike ASVs
+# spike_18S_ix = agrep(spike_18S, asv_18S)
+# spiketab_18S = seqtab_18S[spike_18S_ix, ]
 
-# For 16S - identify spike ASVs
-spike_16S_ix = agrep(spike_16S, asv_16S)
-spiketab_16S = seqtab_16S[spike_16S_ix, ]
-dim(spiketab_16S)
 
-## Check if spike ASVs are unannotated
-# taxa_16S[spike_16S_ix,]
+## 16S exclude mitochondria and chloroplasts
 
-# For 18S - identify spike ASVs
-spike_18S_ix = agrep(spike_18S, asv_18S)
-spiketab_18S = seqtab_18S[spike_18S_ix, ]
+ix_taxa_16S = which(taxa_16S_silva[,4] != 'Chloroplast' | is.na(taxa_16S_silva[,4]))
+ix_taxa_16S = intersect(ix_taxa_16S, which(taxa_16S_silva[,5] != 'Mitochondria' | is.na(taxa_16S_silva[,5])))
 
-## Exclude spike reads and Metazoa from taxa 
+taxa_16S_silva = taxa_16S_silva[ix_taxa_16S,]
 
-ix_taxa_16S =  setdiff(1:nrow(taxa_16S), spike_16S_ix)
 taxa_16S = taxa_16S[ix_taxa_16S,]
 seqtab_16S = seqtab_16S[ix_taxa_16S,]
 
-ix_taxa_18S =  setdiff(1:nrow(taxa_18S), spike_18S_ix)
-ix_taxa_18S = intersect(ix_taxa_18S, which(taxa_18S[,4] != 'Metazoa' | is.na(taxa_18S[,4])))
-ix_taxa_18S = union(ix_taxa_18S, which(is.na(taxa_18S[,3])))
+## For 18S - remove Metazoa
+ix_taxa_18S = which(taxa_18S[,4] != 'Metazoa' | is.na(taxa_18S[,4]))
 taxa_18S = taxa_18S[ix_taxa_18S,]
 seqtab_18S = seqtab_18S[ix_taxa_18S,]
 
@@ -464,7 +490,6 @@ sort(colSums(seqtab_18S)[ix_2015])
 ## Pick only the samples with enough reads
 
 ix = which(! colnames(seqtab_18S) %in% samples_to_exclude)
-metadata = metadata[ix,]
 seqtab_18S = seqtab_18S[,ix]
 
 ## 16S
@@ -510,7 +535,6 @@ samples_to_exclude = c(samples_to_exclude, names(colSums(seqtab_16S)[ix_2015][ix
 ## Pick only the samples with enough reads
 
 ix = which(! colnames(seqtab_16S) %in% samples_to_exclude)
-metadata = metadata[ix,]
 seqtab_16S = seqtab_16S[,ix]
 
 ## Get only samples with quality 16S AND 18S data - discuss
@@ -536,30 +560,69 @@ for (i in 1:ncol(seqtab_18S)) {
   norm_seqtab_18S[,i] = seqtab_18S[,i]/sum(seqtab_18S[,i])
 }
 
-# Rarefying reads per sample to the same counts - not needed (discuss)
-# For 16S
-m=min(colSums(seqtab_16S))  # should we use alfat/beta diversity to select m?
-r_seqtab_16S = t(rrarefy(x = t(seqtab_16S), sample = m))
-colSums(r_seqtab_16S)
-r_seqtab_16S = t(r_seqtab_16S)
-# which(colSums(seqtab) == min(colSums(seqtab)))
+## Sum up clade counts at each taxonomic level
 
-r_norm_seqtab_16S = r_seqtab_16S
-for (i in 1:ncol(r_seqtab_16S)) {
-  r_norm_seqtab_16S[,i] = r_seqtab_16S[,i]/sum(r_seqtab_16S[,i])
+## 16S
+
+clade_counts_16S = list()
+norm_clade_counts_16S = list()
+
+for (i in 1:ncol(taxa_16S)) {
+  matr = norm_matr = NULL
+  clade = unique(taxa_16S[,i])
+  clade = clade[!is.na(clade)]
+  for (j in 1:length(clade)) {
+    ix = which(clade[j]==taxa_16S[,i])
+    if (length(ix) > 1) {
+      matr = rbind(matr, apply(seqtab_16S[ix,], 2, sum, na.rm=TRUE))
+      norm_matr = rbind(norm_matr, apply(norm_seqtab_16S[ix,], 2, sum, na.rm=TRUE))
+    } else {
+      matr = rbind(matr, seqtab_16S[ix,])
+      norm_matr = rbind(norm_matr, norm_seqtab_16S[ix,])
+    }
+  }
+  rownames(matr) = rownames(norm_matr) = clade
+  colnames(matr) = colnames(norm_matr) = metadata$sample_id
+  clade_counts_16S[[i]] = matr
+  norm_clade_counts_16S[[i]] = norm_matr
 }
 
-# For 18S
-m=min(colSums(seqtab_18S))
-r_seqtab_18S = rrarefy(x = t(seqtab_18S), sample = m)
-colSums(r_seqtab_18S)
-r_seqtab_18S = t(r_seqtab_18S)
-# which(colSums(seqtab) == min(colSums(seqtab)))
+## 18S
 
-r_norm_seqtab_18S = r_seqtab_18S
-for (i in 1:ncol(r_seqtab_18S)) {
-  r_norm_seqtab_18S[,i] = r_seqtab_18S[,i]/sum(r_seqtab_18S[,i])
+clade_counts_18S = list()
+norm_clade_counts_18S = list()
+
+for (i in 1:ncol(taxa_18S)) {
+  matr = norm_matr = NULL
+  clade = unique(taxa_18S[,i])
+  clade = clade[!is.na(clade)]
+  for (j in 1:length(clade)) {
+    ix = which(clade[j]==taxa_18S[,i])
+    if (length(ix) > 1) {
+      matr = rbind(matr, apply(seqtab_18S[ix,], 2, sum, na.rm=TRUE))
+      norm_matr = rbind(norm_matr, apply(norm_seqtab_18S[ix,], 2, sum, na.rm=TRUE))
+    } else {
+      matr = rbind(matr, seqtab_18S[ix,])
+      norm_matr = rbind(norm_matr, norm_seqtab_18S[ix,])
+    }
+  }
+  rownames(matr) = rownames(norm_matr) = clade
+  colnames(matr) = colnames(norm_matr) = metadata$sample_id
+  clade_counts_18S[[i]] = matr
+  norm_clade_counts_18S[[i]] = norm_matr
 }
+
+write.table(seqtab_16S,
+            file = paste('../seq_data/combined/16S/processed_seqtab_16S.tsv', sep = ''),
+            sep = '\t', row.names = TRUE, col.names = TRUE)
+write.table(seqtab_18S,
+            file = paste('../seq_data/combined/18S/processed_seqtab_18S.tsv', sep = ''),
+            sep = '\t', row.names = TRUE, col.names = TRUE)
+
+
+## Troubleshooting
+# save.image('troubleshooting.RData')
+# load('troubleshooting.RData')
 
 ### FInished reading data ###
 
