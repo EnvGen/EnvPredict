@@ -288,7 +288,7 @@ seqtab_16S = seqtab_16S[,ix]
 common_samples = intersect(colnames(seqtab_16S),
                            colnames(seqtab_18S))
 seqtab_16S = seqtab_16S[,common_samples]
-seqtab_18S = seqtab_16S[,common_samples]
+seqtab_18S = seqtab_18S[,common_samples]
 
 ix = which(metadata$sample_id %in% common_samples)
 metadata = metadata[ix,]
