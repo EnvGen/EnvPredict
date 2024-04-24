@@ -35,6 +35,8 @@ if(length(new.packages) >0 ) {
 }
 
 
+# 2. Setting up argparser and paths
+
 suppressPackageStartupMessages(library("argparser"))
 
 # arguments
@@ -43,10 +45,10 @@ p <- add_argument(p, "-p", help="Directory with 16S_norm_clade_counts_taxlevel.s
 p <- add_argument(p, "-e", help="Directory with 18S_norm_clade_counts_taxlevel.stv", default="../seq_data/combined/18S")
 p <- add_argument(p, "-m", help="Metadata", default="/Users/luisdelgado/Documents/EnvPredict/seq_data/combined/filtered_metadata.tsv")
 p <- add_argument(p, "-a", help="Directory with VAE latent features files", default="/Users/luisdelgado/Documents/EnvPredict/seq_data/combined/RepresentationsFromDeepMicro")
-p <- add_argument(p, "-b", help="Biotic factors", default="/Users/luisdelgado/Documents/EnvPredict/env_data/combined/zooplankton_processed.tsv")
+p <- add_argument(p, "-b", help="plankton factors", default="/Users/luisdelgado/Documents/EnvPredict/env_data/combined/zooplankton_processed.tsv")
 p <- add_argument(p, "-t", help="Biotic factors", default="/Users/luisdelgado/Documents/EnvPredict/env_data/combined/physical_chemical_processed_translation.tsv")
 p <- add_argument(p, "-w", help="working directory", default="/Users/luisdelgado/Documents/EnvPredict/code")
-p <- add_argument(p, "-o", help="output directory", default="../output_test")
+p <- add_argument(p, "-o", help="output directory", default="../output")
 
 
 argv <- parse_args(p)
@@ -56,10 +58,11 @@ for (s in list_of_packages) { suppressPackageStartupMessages(library(s, characte
 setwd(argv$w)
 dir.create(argv$o)
 
+
 #Extra settings
 only_RF_part=F
-RF_extra="default"
-rf_with_CV=F 
+RF_extra="with_CV"
+rf_with_CV=T
 rf_with_opt_mtry=F
 ##Functions
 
@@ -73,19 +76,21 @@ RF_analysis<-function(counts,Abiotic, target, myNtree, dirout, with_CV, with_opt
   row.names(MDF)<-MDF$sample_id
   MDF=MDF[,!names(MDF) %in% c("sample_id")]
   
-  
   prefi=paste0("RF_",target)
   dir.create(dirout, recursive = T)
   set.seed(123)
   
-  
   X0=na.omit(MDF)
   cat("INFO: Total number of samples ", nrow(X0), "\n")
-  
-  df_split <- initial_split(X0, strata = Response)
-  X <- training(df_split)
-  df_test <- testing(df_split)
-  
+
+
+  train_and_test<-function(fold){ #fold=folds$splits[[1]]
+    extratext=as.character(fold$id)
+    cat("INFO: Working on", extratext, "\n")
+    
+    X <- fold %>% analysis() 
+    df_test <- fold %>% assessment()
+    cat("INFO: Number of samples (training)", nrow(X), "- Number of samples (testing)", nrow(df_test), "\n")
   
   if (with_opt_mtry) {
     try(bestmtry <- tuneRF(X[, !names(X) %in% "Response"], X$Response,ntreeTry = myNtree, stepFactor = 1.2, improve = 0.01, trace=T, plot= T), silent = TRUE)
@@ -138,15 +143,17 @@ RF_analysis<-function(counts,Abiotic, target, myNtree, dirout, with_CV, with_opt
   
   seq_import<-as.data.frame(varImpPlot(rf))
   
-  if (argv$a != "") {seq_import$Type="Latent feature"} else { seq_import$Type="Amplicon"}
+  
+  if (argv$b != "") {seq_import$Type=""} else if (argv$a != "") {seq_import$Type="Latent feature"} else { seq_import$Type="Amplicon"}
   seq_import$Type[grep("Archaea",row.names(seq_import))]<-"Archaea"
   seq_import$Type[grep("Bacteria",row.names(seq_import))]<-"Bacteria"
+  seq_import$Type[grep("Eukaryote",row.names(seq_import))]<-"Eukaryote"
   
   
   seq_import=seq_import[order(seq_import$`%IncMSE`, decreasing = TRUE),]
   
   #Exporting resutls
-  sink(paste(dirout,paste(prefi,"txt",sep="."), sep = "/"))
+  sink(paste(dirout,paste(paste(prefi,extratext, sep="_"),"txt",sep="."), sep = "/"))
   print(rf)
   print("Importance")
   print(seq_import)
@@ -154,7 +161,7 @@ RF_analysis<-function(counts,Abiotic, target, myNtree, dirout, with_CV, with_opt
   ###
   
   #Creating figures
-  seq_import=seq_import[(seq_import$`%IncMSE` > 4 | seq_import$`%IncMSE` < -4),]
+  seq_import=seq_import[(seq_import$`%IncMSE` > 4),]
   gC <- ggplot(data = seq_import, aes(x = reorder(row.names(seq_import),`%IncMSE`), y = `%IncMSE`)) +
     geom_bar(stat = "identity",aes(fill=Type)) + ggtitle("Random Forest importance - %IncMSE > |4|") +
     theme_bw()+       
@@ -163,13 +170,13 @@ RF_analysis<-function(counts,Abiotic, target, myNtree, dirout, with_CV, with_opt
     theme(axis.title = element_blank(), axis.ticks.y = element_blank(), panel.border = element_blank(),axis.text.x = element_text(size=6)) +
     coord_flip()
   
-  ggsave(paste(dirout,paste(prefi,"pdf",sep="."),sep = "/"), gC, width = 82, height = 42, units = "cm")
+  ggsave(paste(dirout,paste(paste(prefi,extratext, sep="_"),"pdf",sep="."),sep = "/"), gC, width = 82, height = 42, units = "cm")
   
   predicted_tr<-predict(rf, X[,!names(X) %in% "Response"], type="response")
   ggDF=data.frame(Actual=X$Response,Predicted=predicted_tr)
   wTr<-ggplot(data=ggDF, aes(x=Actual,y=Predicted))+geom_point()+geom_smooth(method =lm, formula = 'y ~ x' )+stat_cor(label.y = max(X$Response))+theme_bw()
   
-  ggsave(paste(dirout,paste("train",prefi,"pdf",sep="."),sep = "/"), wTr, width = 42, height = 42, units = "cm")
+  ggsave(paste(dirout,paste("train",paste(prefi,extratext, sep="_"),"pdf",sep="."),sep = "/"), wTr, width = 42, height = 42, units = "cm")
   
   predicted_te<-predict(rf, df_test[,!names(df_test) %in% "Response"], type="response")
   
@@ -181,10 +188,17 @@ RF_analysis<-function(counts,Abiotic, target, myNtree, dirout, with_CV, with_opt
   ggDFtest=data.frame(Actual=df_test$Response,Predicted=predicted_te)
   wTe<-ggplot(data=ggDFtest, aes(x=Actual,y=Predicted))+geom_point()+geom_smooth(method =lm, formula = 'y ~ x' )+stat_cor(label.y = max(df_test$Response))+theme_bw()
   
-  ggsave(paste(dirout,paste("test",prefi,"pdf",sep="."),sep = "/"), wTe, width = 42, height = 42, units = "cm")
+  ggsave(paste(dirout,paste("test",paste(prefi,extratext, sep="_"),"pdf",sep="."),sep = "/"), wTe, width = 42, height = 42, units = "cm")
   
   
   return(table_pred)
+  }
+  
+  folds <- vfold_cv(X0, v = 5, strata = Response)
+  predictions_list <- map(folds$splits, train_and_test)
+  predictions <- bind_rows(predictions_list)
+  
+  return(predictions)
 }
 
 xgb_analysis<-function(counts,Abiotic,target, dirout) {
@@ -202,11 +216,18 @@ xgb_analysis<-function(counts,Abiotic,target, dirout) {
   dir.create(dirout, recursive = T)
   set.seed(123)
   
-  df_split <- initial_split(X0, strata = Response)
-  X <- training(df_split)
-  df_test <- testing(df_split)
+  
+  ###
+  train_and_test_XGB<-function(fold){ #fold=folds$splits[[1]]
+    extratext=as.character(fold$id)
+    cat("INFO: Working on", extratext, "\n")
+    
+    X <- fold %>% analysis() 
+    df_test <- fold %>% assessment()
+    cat("INFO: Number of samples (training)", nrow(X), "- Number of samples (testing)", nrow(df_test), "\n")
   
   
+  ###
   prefi=paste0("xgb_",target)
   dtrain <- xgb.DMatrix(data = as.matrix(X[,!names(X) %in% "Response"]), label=X$Response)
   dtest <- xgb.DMatrix(data = as.matrix(df_test[,!names(df_test) %in% "Response"]), label=df_test$Response)
@@ -226,7 +247,7 @@ xgb_analysis<-function(counts,Abiotic,target, dirout) {
   ggDF=data.frame(Actual=X$Response,Predicted=predtr)
   wTr<-ggplot(data=ggDF, aes(x=Actual,y=Predicted))+geom_point()+geom_smooth(method =lm, formula = 'y ~ x' )+stat_cor(label.y = max(X$Response))+theme_bw()
   
-  ggsave(paste(dirout,paste("train",prefi,"pdf",sep="."),sep = "/"), wTr, width = 42, height = 42, units = "cm")
+  ggsave(paste(dirout,paste("train",paste(prefi,extratext, sep="_"),"pdf",sep="."),sep = "/"), wTr, width = 42, height = 42, units = "cm")
   
   pred <- predict(bst, dtest)
   
@@ -238,25 +259,34 @@ xgb_analysis<-function(counts,Abiotic,target, dirout) {
   ggDFtest=data.frame(Actual=df_test$Response,Predicted= pred)
   wTe<-ggplot(data=ggDFtest, aes(x=Actual,y=Predicted))+geom_point()+geom_smooth(method =lm, formula = 'y ~ x' )+stat_cor(label.y = max(df_test$Response))+theme_bw()
   
-  ggsave(paste(dirout,paste("test",prefi,"pdf",sep="."),sep = "/"), wTe, width = 42, height = 42, units = "cm")
+  ggsave(paste(dirout,paste("test",paste(prefi,extratext, sep="_"),"pdf",sep="."),sep = "/"), wTe, width = 42, height = 42, units = "cm")
   
   importance_matrix <- xgb.importance(model = bst)
   
   importance_matrix2 <- importance_matrix[order(importance_matrix$Gain),]
   
-  sink(paste(dirout,paste(prefi,"txt",sep="."), sep = "/"))
+  sink(paste(dirout,paste(paste(prefi,extratext, sep="_"),"txt",sep="."), sep = "/"))
   print(importance_matrix2)
   sink()
   
   
   xgb_ggplot <- xgb.ggplot.importance(importance_matrix = importance_matrix[1:60]) +theme_bw() 
   
-  ggsave(paste(dirout,paste(prefi,"pdf",sep="."),sep = "/"), xgb_ggplot, width = 82, height = 42, units = "cm")
+  ggsave(paste(dirout,paste(paste(prefi,extratext, sep="_"),"pdf",sep="."),sep = "/"), xgb_ggplot, width = 82, height = 42, units = "cm")
   gr<-xgb.plot.tree(model = bst,render=FALSE) 
   
-  export_graph(gr, paste(dirout,paste(prefi,"tree","pdf",sep="."),sep = "/"), width=1500, height=1900)
+  export_graph(gr, paste(dirout,paste(paste(prefi,extratext, sep="_"),"tree","pdf",sep="."),sep = "/"), width=1500, height=1900)
   
   return(table_pred)
+  }
+  
+  ###
+  folds <- vfold_cv(X0, v = 5, strata = Response)
+  predictions_list <- map(folds$splits, train_and_test_XGB)
+  predictions <- bind_rows(predictions_list)
+  
+  return(predictions)
+  ###
 }
 
 ## Reading input data
@@ -264,7 +294,7 @@ xgb_analysis<-function(counts,Abiotic,target, dirout) {
 norm_clade_counts_16S_files=list.files(argv$p, pattern = "norm_clade_counts_16S_\\d.tsv"  )
 norm_clade_counts_18S_files=list.files(argv$e, pattern = "norm_clade_counts_18S_\\d.tsv"  )
 
-if (argv$b != "") { 
+if (argv$b != "") { # processing abiotic data
   abiot=as.data.frame(t(read.delim(argv$b, header = TRUE)))
   rownames(abiot)<-gsub("^X","", rownames(abiot))  
   samples_names=as.data.frame(read.delim(argv$t, header = TRUE))
@@ -275,21 +305,21 @@ if (argv$b != "") {
   abiotics<-abiotics[,!names(abiotics) %in% "sample"]
   abiotics <- abiotics %>% select("sample_id", everything())
   
-  ab_factors=names(abiotics)[!names(abiotics) %in% "sample_id"]
+  ab_factors=names(abiotics)[!names(abiotics) %in% "sample_id"][1:2]
   add_sufix="Biotic"
   
 } else {    
-  abiotics=read_tsv(argv$m, show_col_types = FALSE) #20190514_263729_1
+  abiotics=read_tsv(argv$m, show_col_types = FALSE) 
   ab_factors=names(abiotics)[10:21]
   add_sufix="Abiotic"
 }
 
 
-for (rRNA in c("16S", "18S")) {
+for (rRNA in c("16S","18S")) { #rRNA="16S"
   if (rRNA == "16S")  tax_level_numbers<-list("Specie"=7, "Genus"=6,"Family"=5, "Order"=4, "Class"=3)
   if (rRNA == "18S")  tax_level_numbers<-list("Specie"=9, "Genus"=8,"Family"=7, "Order"=6, "Class"=5)
   
-  for (Tax_Level in names(tax_level_numbers)){
+  for (Tax_Level in names(tax_level_numbers)){ #Tax_Level="Specie"
     num=tax_level_numbers[[Tax_Level]]
     
     if (rRNA == "16S") DF_norm=read.delim(paste(argv$p,norm_clade_counts_16S_files[num], sep="/"), header = TRUE)
@@ -304,20 +334,21 @@ for (rRNA in c("16S", "18S")) {
     
     table_pred<-vector(mode = "list", length = length(ab_factors))
     i=1
-    for (fc in ab_factors) { 
+    for (fc in ab_factors) { #fc="Amphipoda"                       
       cat("*** RF with ",Tax_Level," - ",rRNA," - ",fc, " \n")
+      
       table_pred[[i]]<-RF_analysis(DF_norm,abiotics, fc, 1000, Dout, with_CV=rf_with_CV, with_opt_mtry=rf_with_opt_mtry)
       i=i+1
     }
     
-    final_pred_table<-table_pred %>% reduce(full_join, by='sample_id')
+    final_pred_table<-table_pred %>% reduce(full_join, by='sample_id') %>% arrange(sample_id)
     
     prefix_files=paste("RF",RF_extra,Tax_Level,rRNA, add_sufix, sep="_")
     doutpred=paste(argv$o,"Summary", sep="/")
     dir.create(doutpred, recursive = T)
     write.table(final_pred_table, file=paste(doutpred,paste(prefix_files,"Predictions.tsv",sep="_"),sep = "/"), sep = '\t', row.names = F, col.names = T )
     
-    final_actual_table <- abiotics %>% filter(sample_id %in% final_pred_table$sample_id) %>% select(sub("Predicted_","",names(final_pred_table)))
+    final_actual_table <- abiotics %>% filter(sample_id %in% final_pred_table$sample_id) %>% select(sub("Predicted_","",names(final_pred_table))) %>% arrange(sample_id)
     write.table(final_actual_table, file=paste(doutpred,paste(prefix_files,"Actual_values.tsv",sep="_"),sep = "/"), sep = '\t', row.names = F, col.names = T )
     
     
@@ -331,12 +362,12 @@ for (rRNA in c("16S", "18S")) {
         j=j+1
       }
       
-      final_pred_table_xgb<- table_pred_xgb %>% reduce(full_join, by='sample_id')
+      final_pred_table_xgb<- table_pred_xgb %>% reduce(full_join, by='sample_id') %>% arrange(sample_id)
       
       prefix_files=paste("XGB",Tax_Level,rRNA, add_sufix,sep="_")
       write.table(final_pred_table_xgb, file=paste(doutpred,paste(prefix_files,"Predictions.tsv",sep="_"),sep = "/"), sep = '\t', row.names = F, col.names = T )
       
-      final_actual_table_xgb <- abiotics %>% filter(sample_id %in% final_pred_table_xgb$sample_id) %>% select(sub("Predicted_","",names(final_pred_table_xgb)))
+      final_actual_table_xgb <- abiotics %>% filter(sample_id %in% final_pred_table_xgb$sample_id) %>% select(sub("Predicted_","",names(final_pred_table_xgb))) %>% arrange(sample_id)
       write.table(final_actual_table_xgb, file=paste(doutpred,paste(prefix_files,"Actual_values.tsv",sep="_"),sep = "/"), sep = '\t', row.names = F, col.names = T )
       
     }
@@ -369,12 +400,12 @@ for (rRNA in c("16S", "18S")) {
         i=i+1
       }
       
-      final_pred_table<-table_pred %>% reduce(full_join, by='sample_id')
+      final_pred_table<-table_pred %>% reduce(full_join, by='sample_id') %>% arrange(sample_id)
       
       prefix_files=paste("VAE",archt,"RF",rRNA,add_sufix,sep="_")
       write.table(final_pred_table, file=paste(doutpred,paste(prefix_files,"Predictions.tsv",sep="_"),sep = "/"), sep = '\t', row.names = F, col.names = T )
       
-      final_actual_table <- abiotics %>% filter(sample_id %in% final_pred_table$sample_id) %>% select(sub("Predicted_","",names(final_pred_table)))
+      final_actual_table <- abiotics %>% filter(sample_id %in% final_pred_table$sample_id) %>% select(sub("Predicted_","",names(final_pred_table))) %>% arrange(sample_id)
       write.table(final_actual_table, file=paste(doutpred,paste(prefix_files,"Actual_values.tsv",sep="_"),sep = "/"), sep = '\t', row.names = F, col.names = T )
       
       
@@ -388,12 +419,12 @@ for (rRNA in c("16S", "18S")) {
           j=j+1
         }
         
-        final_pred_table_xgb<- table_pred_xgb %>% reduce(full_join, by='sample_id')
+        final_pred_table_xgb<- table_pred_xgb %>% reduce(full_join, by='sample_id') %>% arrange(sample_id)
         
         prefix_files=paste("VAE",archt,"XGB",rRNA,add_sufix,sep="_")
         write.table(final_pred_table_xgb, file=paste(doutpred,paste(prefix_files,"Predictions.tsv",sep="_"),sep = "/"), sep = '\t', row.names = F, col.names = T )
         
-        final_actual_table_xgb <- abiotics %>% filter(sample_id %in% final_pred_table_xgb$sample_id) %>% select(sub("Predicted_","",names(final_pred_table_xgb)))
+        final_actual_table_xgb <- abiotics %>% filter(sample_id %in% final_pred_table_xgb$sample_id) %>% select(sub("Predicted_","",names(final_pred_table_xgb))) %>% arrange(sample_id)
         write.table(final_actual_table_xgb, file=paste(doutpred,paste(prefix_files,"Actual_values.tsv",sep="_"),sep = "/"), sep = '\t', row.names = F, col.names = T )
         
       }  
