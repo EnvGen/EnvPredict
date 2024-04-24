@@ -1,3 +1,4 @@
 # Ignore these directories:
 env_data/
 seq_data/
+plots/
