@@ -45,7 +45,8 @@ p <- add_argument(p, "-p", help="Directory with 16S_norm_clade_counts_taxlevel.s
 p <- add_argument(p, "-e", help="Directory with 18S_norm_clade_counts_taxlevel.stv", default="../seq_data/combined/18S")
 p <- add_argument(p, "-m", help="Metadata", default="../env_data/combined/physical_chemical_processed_translation.tsv")
 p <- add_argument(p, "-a", help="Directory with VAE latent features files", default="../seq_data/combined/RepresentationsFromDeepMicro")
-p <- add_argument(p, "-b", help="plankton factors", default="../env_data/combined/zooplankton_processed.tsv")
+# p <- add_argument(p, "-b", help="plankton factors", default="../env_data/combined/zooplankton_processed.tsv")
+p <- add_argument(p, "-b", help="plankton factors", default="")
 p <- add_argument(p, "-t", help="Biotic factors", default="../env_data/combined/physical_chemical_processed_translation.tsv")
 p <- add_argument(p, "-w", help="working directory", default="//wsl.localhost/Ubuntu/home/krzjur/EnvPredict/code")
 p <- add_argument(p, "-o", help="output directory", default="../output")
@@ -296,28 +297,28 @@ norm_clade_counts_18S_files=list.files(argv$e, pattern = "norm_clade_counts_18S_
 
 if (argv$b != "") { # processing abiotic data
   abiot=as.data.frame(t(read.delim(argv$b, header = TRUE)))
-  rownames(abiot)<-gsub("^X","", rownames(abiot))  
+  rownames(abiot)<-gsub("^X","", rownames(abiot))
   samples_names=as.data.frame(read.delim(argv$t, header = TRUE))
-  samples_names$sample<-gsub("-",".",samples_names$sample)
-  snames<-samples_names %>% select(sample, sample_id)
+  samples_names$station_id_date<-gsub("-",".",samples_names$station_id_date)
+  snames<-samples_names %>% select(station_id_date, sample_id)
   abiot$sample=rownames(abiot)
   abiotics=merge(abiot, snames)
   abiotics<-abiotics[,!names(abiotics) %in% "sample"]
   abiotics <- abiotics %>% select("sample_id", everything())
-  
+
   ab_factors=names(abiotics)[!names(abiotics) %in% "sample_id"][1:2]
   add_sufix="Biotic"
-  
-} else {    
-  abiotics=read_tsv(argv$m, show_col_types = FALSE) 
+
+} else {
+  abiotics=read_tsv(argv$m, show_col_types = FALSE)
   ab_factors=names(abiotics)[10:21]
   add_sufix="Abiotic"
 }
 
 
 for (rRNA in c("16S","18S")) { #rRNA="16S"
-  if (rRNA == "16S")  tax_level_numbers<-list("Specie"=7, "Genus"=6,"Family"=5, "Order"=4, "Class"=3)
-  if (rRNA == "18S")  tax_level_numbers<-list("Specie"=9, "Genus"=8,"Family"=7, "Order"=6, "Class"=5)
+  if (rRNA == "16S")  tax_level_numbers<-list("Species"=7, "Genus"=6,"Family"=5, "Order"=4, "Class"=3)
+  if (rRNA == "18S")  tax_level_numbers<-list("Species"=9, "Genus"=8,"Family"=7, "Order"=6, "Class"=5)
   
   for (Tax_Level in names(tax_level_numbers)){ #Tax_Level="Specie"
     num=tax_level_numbers[[Tax_Level]]
@@ -433,3 +434,13 @@ for (rRNA in c("16S","18S")) { #rRNA="16S"
   
 }    
 
+## Get a name for the RData file
+if(argv$b != ''){n
+  ame = strsplit(argv$b, '/')
+}else{
+  name = strsplit(argv$m, '/')
+}
+name = name[[1]][length(name[[1]])]
+name = strsplit(name, '.', fixed = TRUE)[[1]][1]
+
+save.image(save.image(paste('prediction_', name ,'.RData', sep = '')))
