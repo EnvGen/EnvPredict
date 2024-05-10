@@ -6,13 +6,13 @@ if (!is.na(args[1]) && args[1] > 1 ) CPUS=args[1] else CPUS=1
 
 options(Ncpus = CPUS)
 #Packages to be installed
-CRAN_packages <- c("tidyverse","anytime","viridis","reshape2","vegan","ggpubr","ape","lubridate", "dplyr","plyr","svglite","gridExtra","geosphere","corrplot","ggthemes", "cowplot", "data.table", "mlr", "tidymodels", "randomForest", "xgboost", "DiagrammeR")
+CRAN_packages <- c("tidyverse","anytime","viridis","reshape2","vegan","ggpubr","ape","lubridate", "dplyr","plyr","svglite","gridExtra","geosphere","corrplot","ggthemes", "cowplot", "data.table", "mlr", "tidymodels", "randomForest", "xgboost", "DiagrammeR", "Ckmeans.1d.dp")
 #‘ragg’
 # bioconduc_packages=c("ggtree")
 
-github_packages= c"Ckmeans.1d.dp") 
+# github_packages= c("Ckmeans.1d.dp") 
 
-all_packages=c(CRAN_packages,github_packages)
+all_packages=c(CRAN_packages)
 
 
 #Installation
@@ -38,16 +38,14 @@ if(length(new.packages) >0 ) {
 #                                                           quiet = T
 #       ))}
 #   }
-}
+# }
 
-new.packages <- github_packages[!(github_packages %in% installed.packages()[,"Package"])]
-if(length(new.packages) >0 ) {
-  cat("INFO: Installing : gggenomes \n")
-  remotes::install_github("thackl/thacklr",Ncpus = CPUS,
-                          quiet = T)
-  remotes::install_github("thackl/gggenomes",Ncpus = CPUS,
-                          quiet = T)
-}
+# new.packages <- github_packages[!(github_packages %in% installed.packages()[,"Package"])]
+# if(length(new.packages) >0 ) {
+#   cat("INFO: Installing : Ckmeans.1d.dp \n")
+#   remotes::install_github("thackl/Ckmeans.1d.dp",Ncpus = CPUS,
+#                           quiet = T)
+# }
 
 # Final check 
 new.packages <- all_packages[!(all_packages %in% installed.packages()[,"Package"])]
