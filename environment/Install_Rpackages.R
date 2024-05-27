@@ -8,11 +8,11 @@ options(Ncpus = CPUS)
 #Packages to be installed
 CRAN_packages <- c("tidyverse","anytime","viridis","reshape2","vegan","ggpubr","ape","lubridate", "dplyr","plyr","svglite","gridExtra","geosphere","corrplot","ggthemes", "cowplot", "data.table", "mlr", "tidymodels", "randomForest", "xgboost", "DiagrammeR", "Ckmeans.1d.dp")
 #‘ragg’
-# bioconduc_packages=c("ggtree")
+bioconduc_packages=c("ape")
 
-# github_packages= c("Ckmeans.1d.dp") 
+# github_packages= c("ggpubr") 
 
-all_packages=c(CRAN_packages)
+all_packages=c(CRAN_packages, bioconduc_packages)
 
 
 #Installation
@@ -28,22 +28,22 @@ if(length(new.packages) >0 ) {
                                                       repos='http://cran.rstudio.com/'))}
   }
 }
-# new.packages <- bioconduc_packages[!(bioconduc_packages %in% installed.packages()[,"Package"])]
-# if(length(new.packages) >0 ) {
-#   for (s in new.packages) {
-#     if (!s %in% installed.packages()[,"Package"]) {
-#       cat("INFO: Installing :", s, "\n")
-#       suppressPackageStartupMessages(BiocManager::install(s,
-#                                                           Ncpus = CPUS,
-#                                                           quiet = T
-#       ))}
-#   }
-# }
+new.packages <- bioconduc_packages[!(bioconduc_packages %in% installed.packages()[,"Package"])]
+if(length(new.packages) >0 ) {
+  for (s in new.packages) {
+    if (!s %in% installed.packages()[,"Package"]) {
+      cat("INFO: Installing :", s, "\n")
+      suppressPackageStartupMessages(BiocManager::install(s,
+                                                          Ncpus = CPUS,
+                                                          quiet = T
+      ))}
+  }
+}
 
 # new.packages <- github_packages[!(github_packages %in% installed.packages()[,"Package"])]
 # if(length(new.packages) >0 ) {
 #   cat("INFO: Installing : Ckmeans.1d.dp \n")
-#   remotes::install_github("thackl/Ckmeans.1d.dp",Ncpus = CPUS,
+#   remotes::install_github("kassambara/ggpubr",Ncpus = CPUS,
 #                           quiet = T)
 # }
 

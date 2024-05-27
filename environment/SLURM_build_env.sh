@@ -8,6 +8,7 @@
 #SBATCH -t 01:00:00
 #SBATCH -J creating_EnvPredict_env
 
+# conda remove --name EnvPredict --all
 conda env create -f environment.yaml
 conda activate EnvPredict
 Rscript --vanilla Install_Rpackages.R 20

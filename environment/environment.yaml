@@ -1,9 +1,34 @@
 name: EnvPredict
 channels:
   - conda-forge
-  - r
+  - anaconda
 dependencies:
-  - r=4.2     # Install R version 4.2
-  - r-tidyverse     # Install the tidyverse R packages
-  - r-devtools      # Install the devtools R package (for installing packages from GitHub)
-  - r-remotes       # Install the remotes R package (required for GitHub installation)
+  - r-base=4.2.0
+  - cmake
+  - r-remotes
+  - libgit2
+  - pkg-config
+  - r-tidyverse
+  - r-anytime
+  - r-viridis
+  - r-reshape2
+  - r-vegan
+  - r-ggpubr
+  - r-ape
+  - r-lubridate
+  - r-dplyr
+  - r-plyr
+  - r-svglite
+  - r-gridextra
+  - r-geosphere
+  - r-corrplot
+  - r-ggthemes
+  - r-cowplot
+  - r-data.table
+  - r-mlr
+  - r-tidymodels
+  - r-randomforest
+  - r-xgboost
+  - r-diagrammer
+  - r-ckmeans.1d.dp
+  - r-argparser
