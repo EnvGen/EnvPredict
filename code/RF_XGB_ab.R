@@ -292,8 +292,8 @@ xgb_analysis<-function(counts,Abiotic,target, dirout) {
 
 ## Reading input data
 
-norm_clade_counts_16S_files=list.files(argv$p, pattern = "norm_clade_counts_16S_\\d.tsv"  )
-norm_clade_counts_18S_files=list.files(argv$e, pattern = "norm_clade_counts_18S_\\d.tsv"  )
+norm_clade_counts_16S_files=c(list.files(argv$p, pattern = "norm_clade_counts_16S_\\d.tsv"),'norm_seqtab_16S')
+norm_clade_counts_18S_files=c(list.files(argv$e, pattern = "norm_clade_counts_18S_\\d.tsv"),'norm_seqtab_18S')
 
 if (argv$b != "") { # processing abiotic data
   abiot=as.data.frame(t(read.delim(argv$b, header = TRUE)))
@@ -311,14 +311,14 @@ if (argv$b != "") { # processing abiotic data
 
 } else {
   abiotics=read_tsv(argv$m, show_col_types = FALSE)
-  ab_factors=names(abiotics)[10:21]
+  ab_factors=names(abiotics)[9:25]
   add_sufix="Abiotic"
 }
 
 
 for (rRNA in c("16S","18S")) { #rRNA="16S"
-  if (rRNA == "16S")  tax_level_numbers<-list("Species"=7, "Genus"=6,"Family"=5, "Order"=4, "Class"=3)
-  if (rRNA == "18S")  tax_level_numbers<-list("Species"=9, "Genus"=8,"Family"=7, "Order"=6, "Class"=5)
+  if (rRNA == "16S")  tax_level_numbers<-list("ASV"=8, "Species"=7, "Genus"=6,"Family"=5, "Order"=4, "Class"=3)
+  if (rRNA == "18S")  tax_level_numbers<-list("ASV"=10, "Species"=9, "Genus"=8,"Family"=7, "Order"=6, "Class"=5)
   
   for (Tax_Level in names(tax_level_numbers)){ #Tax_Level="Specie"
     num=tax_level_numbers[[Tax_Level]]
