@@ -27,7 +27,7 @@ if(length(new.packages) >0 ) {
 list_of_packages <- c("tidyverse","anytime","viridis","reshape2","vegan","ggpubr","ape","lubridate",
                       "dplyr","plyr","svglite","gridExtra","geosphere","corrplot","ggthemes",
                       "cowplot", "data.table", "mlr", "tidymodels", "randomForest", "xgboost", "DiagrammeR",
-                      "Ckmeans.1d.dp") #,"DiagrammeRsvg", "rsvg")
+                      "Ckmeans.1d.dp","DiagrammeRsvg", "rsvg")
 
 new.packages <- list_of_packages[!(list_of_packages %in% installed.packages()[,"Package"])]
 if(length(new.packages) >0 ) {
@@ -43,11 +43,11 @@ suppressPackageStartupMessages(library("argparser"))
 p <- arg_parser("RFandXGB.R [options]")
 p <- add_argument(p, "-p", help="Directory with 16S_norm_clade_counts_taxlevel.stv", default="../seq_data/combined/16S")
 p <- add_argument(p, "-e", help="Directory with 18S_norm_clade_counts_taxlevel.stv", default="../seq_data/combined/18S")
-p <- add_argument(p, "-m", help="Metadata", default="../env_data/combined/physical_chemical_processed_translation.tsv")
+p <- add_argument(p, "-m", help="Physico-chemical factors (target variables if no plankton non-metabarcoding data available), also sample name translation file", default="../env_data/combined/physical_chemical_processed_translation.tsv")
 p <- add_argument(p, "-a", help="Directory with VAE latent features files", default="../seq_data/combined/RepresentationsFromDeepMicro")
 # p <- add_argument(p, "-b", help="plankton factors", default="../env_data/combined/zooplankton_processed.tsv")
-p <- add_argument(p, "-b", help="plankton factors", default="")
-p <- add_argument(p, "-t", help="Biotic factors", default="../env_data/combined/physical_chemical_processed_translation.tsv")
+p <- add_argument(p, "-b", help="Plankton factors (target variables if available)", default="")
+# p <- add_argument(p, "-t", help="Biotic factors", default="../env_data/combined/physical_chemical_processed_translation.tsv")
 p <- add_argument(p, "-w", help="working directory", default="//wsl.localhost/Ubuntu/home/krzjur/EnvPredict/code")
 p <- add_argument(p, "-o", help="output directory", default="../output")
 
@@ -61,7 +61,7 @@ dir.create(argv$o)
 
 
 #Extra settings
-only_RF_part=F
+only_RF_part=T
 RF_extra="with_CV"
 rf_with_CV=T
 rf_with_opt_mtry=F
@@ -298,7 +298,7 @@ norm_clade_counts_18S_files=list.files(argv$e, pattern = "norm_clade_counts_18S_
 if (argv$b != "") { # processing abiotic data
   abiot=as.data.frame(t(read.delim(argv$b, header = TRUE)))
   rownames(abiot)<-gsub("^X","", rownames(abiot))
-  samples_names=as.data.frame(read.delim(argv$t, header = TRUE))
+  samples_names=as.data.frame(read.delim(argv$m, header = TRUE))
   samples_names$station_id_date<-gsub("-",".",samples_names$station_id_date)
   snames<-samples_names %>% select(station_id_date, sample_id)
   abiot$sample=rownames(abiot)
