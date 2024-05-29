@@ -46,7 +46,7 @@ p <- add_argument(p, "-n", help="16S_count table", default="../seq_data/combined
 p <- add_argument(p, "-y", help="18S_count table", default="../seq_data/combined/18S/seqtab_18S.tsv")
 p <- add_argument(p, "-f", help="Barrnap-filered 16S ASV ids", default="../seq_data/combined/barrnap_cleaned_16S_18S/ASV_IDs_16S.txt")
 p <- add_argument(p, "-g", help="Barrnap-filered 16S ASV ids", default="../seq_data/combined/barrnap_cleaned_16S_18S/ASV_IDs_18S.txt")
-p <- add_argument(p, "-m", help="Metadata", default="../env_data/combined/physical_chemical_processed.tsv")
+p <- add_argument(p, "-m", help="Metadata", default="../env_data/combined/physical_chemical_processed_translation.tsv")
 # p <- add_argument(p, "-a", help="Abiotic parameters", default="contextual_data/physical_chemical_data_2019-2020_2022-03-16.txt")
 p <- add_argument(p, "-z", help="taxa_16S table", default="../seq_data/combined/16S/taxa_16S.tsv")
 p <- add_argument(p, "-s", help="taxa_16S SILVA table", default="../seq_data/combined/16S/taxa_16S_SILVA.tsv")
@@ -307,6 +307,10 @@ for (i in 1:ncol(seqtab_18S)) {
 }
 
 ## Sum up clade counts at each taxonomic level
+
+## Change 16S species name to contain also genus
+ix = which(!is.na(taxa_16S[,'Species']))
+taxa_16S[ix,'Species'] = paste(taxa_16S[ix,'Genus'], taxa_16S[ix,'Species'], sep = '_')
 
 ## 16S
 
