@@ -32,3 +32,5 @@ dependencies:
   - r-diagrammer
   - r-ckmeans.1d.dp
   - r-argparser
+  - r-DiagrammeRsvg
+  - r-rsvg
