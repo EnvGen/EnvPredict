@@ -292,8 +292,8 @@ xgb_analysis<-function(counts,Abiotic,target, dirout) {
 
 ## Reading input data
 
-norm_clade_counts_16S_files=c(list.files(argv$p, pattern = "norm_clade_counts_16S_\\d.tsv"),'norm_seqtab_16S')
-norm_clade_counts_18S_files=c(list.files(argv$e, pattern = "norm_clade_counts_18S_\\d.tsv"),'norm_seqtab_18S')
+norm_clade_counts_16S_files=c(list.files(argv$p, pattern = "norm_clade_counts_16S_\\d.tsv"),'norm_seqtab_16S.tsv')
+norm_clade_counts_18S_files=c(list.files(argv$e, pattern = "norm_clade_counts_18S_\\d.tsv"),'norm_seqtab_18S.tsv')
 
 if (argv$b != "") { # processing abiotic data
   abiot=as.data.frame(t(read.delim(argv$b, header = TRUE)))
@@ -386,7 +386,7 @@ for (rRNA in c("16S","18S")) { #rRNA="16S"
     
     
     for (archt in archt_numbers ) {
-      num=grep(archt,VAE_features_files)
+      num=grep(paste0('^', archt),VAE_features_files)
       DF_norm=read.delim(paste(argv$a,VAE_features_files[num], sep="/"), header = TRUE)
       names(DF_norm)[1]<-"sample_id"
       DF_norm$sample_id <- sub("^X", "", DF_norm$sample_id)
