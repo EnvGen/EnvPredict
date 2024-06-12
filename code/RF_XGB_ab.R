@@ -267,7 +267,7 @@ if (argv$b != "") {
   add_sufix="Biotic"
 } else {    
   abiotics=read_tsv(argv$m, show_col_types = FALSE) 
-  ab_factors=names(abiotics)[8:26] 
+  ab_factors=names(abiotics)[8:28] 
   add_sufix="Abiotic"
 }
 

@@ -10,13 +10,5 @@
 #SBATCH -C mem1TB
 #SBATCH -J EnvPredict-phytoplankton
 
-
-# module add R/4.1.1
-# module add R_packages/4.1.1
 conda activate EnvPredict
-# Rscript --vanilla filter_data.R -w "/crex/proj/snic2020-6-126/projects/plankton_monitoring/EnvPredict/code/"
-# Rscript --vanilla RF_XGB_ab.R -w "/crex/proj/snic2020-6-126/projects/plankton_monitoring/EnvPredict/code/"
-# Rscript --vanilla RF_XGB_ab.R -b "../env_data/combined/zooplankton_filtered.tsv" -w "/crex/proj/snic2020-6-126/projects/plankton_monitoring/EnvPredict/code/"
-Rscript --vanilla RF_XGB_ab.R -b "../env_data/combined/phytoplankton_filtered.tsv" -w "/crex/proj/snic2020-6-126/projects/plankton_monitoring/EnvPredict/code/"
-# Rscript --vanilla RF_XGB_ab.R -b "../env_data/combined/picoplankton_filtered.tsv" -w "/crex/proj/snic2020-6-126/projects/plankton_monitoring/EnvPredict/code/"
-# Rscript --vanilla RF_XGB_ab.R -b "../env_data/combined/bacterioplankton_filtered.tsv" -w "/crex/proj/snic2020-6-126/projects/plankton_monitoring/EnvPredict/code/"
+Rscript --vanilla RF_XGB_ab.R -b "../env_data/combined/phytoplankton_filtered.tsv" -m "" -w "/crex/proj/snic2020-6-126/projects/plankton_monitoring/EnvPredict/code/"

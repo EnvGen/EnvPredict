@@ -1,4 +1,4 @@
-setwd("C:/Users/krzysztof.jurdzins/Desktop/ENVGEN_ndb/EnvPredict/code")
+setwd("//wsl.localhost/Ubuntu/home/krzjur/EnvPredict/code")
 
 ## Define infiles
 
@@ -46,3 +46,4 @@ metadata = metadata[,c(1,2, ncol(metadata), 3:(ncol(metadata)-1))]
 write.table(metadata,
             "../env_data/combined/physical_chemical_processed_translation.tsv",
             sep = '\t', row.names = FALSE, col.names = TRUE, quote = FALSE)
+
