@@ -12,10 +12,10 @@ suppressPackageStartupMessages(library("argparser"))
 p <- arg_parser("RFandXGB.R [options]")
 p <- add_argument(p, "-p", help="Directory with 16S_norm_clade_counts_taxlevel.stv", default="../seq_data/combined/16S")
 p <- add_argument(p, "-e", help="Directory with 18S_norm_clade_counts_taxlevel.stv", default="../seq_data/combined/18S")
-p <- add_argument(p, "-a", help="Directory with VAE latent features files", default="")#../seq_data/combined/RepresentationsFromDeepMicro")
-p <- add_argument(p, "-m", help="Physicochemical parameters to be predicted", default="")#../env_data/combined/physical_chemical_processed.tsv")
-p <- add_argument(p, "-b", help="plankton factors to be predicted", default="") #../env_data/combined/zooplankton_filtered.tsv")
-p <- add_argument(p, "-t", help="Translation samples IDs, required when importing data from plankton factors", default="") #../env_data/combined/sample_id_translation.tsv")
+p <- add_argument(p, "-a", help="Directory with VAE latent features files", default="../seq_data/combined/RepresentationsFromDeepMicro")
+p <- add_argument(p, "-m", help="Physicochemical parameters to be predicted", default="../env_data/combined/physical_chemical_processed.tsv")
+p <- add_argument(p, "-b", help="plankton factors to be predicted", default="")
+p <- add_argument(p, "-t", help="Translation samples IDs, required when importing data from plankton factors", default="../env_data/combined/sample_id_translation.tsv")
 p <- add_argument(p, "-w", help="working directory", default="")
 p <- add_argument(p, "-o", help="output directory", default="../output")
 
@@ -263,16 +263,13 @@ if (argv$b != "") {
   abiotics=merge(abiot, samples_names, by="station_id_date")
   abiotics<-abiotics[,!names(abiotics) %in% "station_id_date"]
   abiotics <- abiotics %>% select("sample_id", everything())
-  
   ab_factors=names(abiotics)[!names(abiotics) %in% "sample_id"]
   add_sufix="Biotic"
-  
 } else {    
   abiotics=read_tsv(argv$m, show_col_types = FALSE) 
   ab_factors=names(abiotics)[8:26] 
   add_sufix="Abiotic"
 }
-
 
 for (rRNA in c("16S","18S")) { #rRNA="16S"
   if (rRNA == "16S")  tax_level_numbers<-list("Class"=3, "Order"=4,"Family"=5, "Genus"=6, "Species"=7,"ASV"=8 )
@@ -409,3 +406,14 @@ for (rRNA in c("16S","18S")) { #rRNA="16S"
   
 }    
 
+## Get a name for the RData file
+if(argv$b != ''){n
+  ame = strsplit(argv$b, '/')
+}else{
+  name = strsplit(argv$m, '/')
+}
+name = name[[1]][length(name[[1]])]
+name = strsplit(name, '.', fixed = TRUE)[[1]][1]
+
+## Save the session
+save.image(paste('prediction_', name ,'.RData', sep = ''))
