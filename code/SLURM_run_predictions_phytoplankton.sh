@@ -6,7 +6,7 @@
 #SBATCH -n 1
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=krzysztof.jurdzins@scilifelab.se
-#SBATCH -t 4-00:00:00
+#SBATCH -t 10-00:00:00
 #SBATCH -C mem1TB
 #SBATCH -J EnvPredict-phytoplankton
 

@@ -5,7 +5,7 @@
 #SBATCH -n 20
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=krzysztof.jurdzins@scilifelab.se
-#SBATCH -t 5-00:00:00
+#SBATCH -t 6-00:00:00
 #SBATCH -J EnvPredict
 
 
