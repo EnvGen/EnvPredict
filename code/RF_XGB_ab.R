@@ -31,7 +31,7 @@ only_RF_part=F
 RF_extra="withCV_mtryopt"
 rf_with_CV=T
 rf_with_opt_mtry=T
-minSamp=100 #Features present in less than 100 samples are not included in the analysis
+minSamp=10 #Features present in less than 100 samples are not included in the analysis
 ##Functions
 
 
