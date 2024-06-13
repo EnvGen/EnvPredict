@@ -23,7 +23,7 @@ argv <- parse_args(p)
 
 for (s in list_of_packages) { suppressPackageStartupMessages(library(s, character.only = TRUE))}
 
-# setwd(argv$w)
+setwd(argv$w)
 dir.create(argv$o)
 plan(multisession)
 #Extra settings
@@ -46,14 +46,13 @@ RF_analysis<-function(counts,Abiotic, target, myNtree, dirout, with_CV, with_opt
     cat("   Number of samples (training)", nrow(X), "- Number of samples (testing)", nrow(df_test), "\n")
     
     if (with_opt_mtry && with_CV == F) {
-      try(bestmtry %<-% {tuneRF(X[, !names(X) %in% "Response"], X$Response,ntreeTry = myNtree, stepFactor = 1.2, improve = 0.01, trace=F, plot= F)}, silent = TRUE)
+      tryCatch(bestmtry <- tuneRF(X[, !names(X) %in% "Response"], X$Response,ntreeTry = myNtree, stepFactor = 1.2, improve = 0.01, trace=F, plot= F), error = function(e){cat("   Parameter mtry couldn't be optimised\n")})
       if (exists("bestmtry")) {
         cat("   Parameter mtry has been optimised\n")
         Mtry=bestmtry[match(min(bestmtry[,2]), bestmtry[,2]),1]
         
         rf2 %<-% {randomForest(X[,!names(X) %in% "Response"],X$Response, mtry=Mtry,ntree = myNtree, keep.forest=TRUE, importance=TRUE )}
-      } else {
-        cat("   Parameter mtry couldn't be optimised\n")
+      }else {
         rf2 %<-% {randomForest(X[,!names(X) %in% "Response"],X$Response,ntree = myNtree, keep.forest=TRUE, importance=TRUE ) }
       }
     } else {
@@ -73,18 +72,17 @@ RF_analysis<-function(counts,Abiotic, target, myNtree, dirout, with_CV, with_opt
 
       selected_seqs=c("Response",row.names(imp))
       Xs<-X[, (names(X) %in% selected_seqs)]
+      Xs_no_response <- as.data.frame(Xs[, !names(Xs) %in% "Response"]) ## For it not to crash if NV = 1
+      if(NV == 1){
+        colnames(Xs_no_response) <- selected_seqs[2]
+      }
       if (with_opt_mtry) {
-        Xs_no_response <- as.data.frame(Xs[, !names(Xs) %in% "Response"]) ## For it not to crash if NV = 1
-        if(NV == 1){
-          colnames(Xs_no_response) <- selected_seqs[2]
-        }
-        try(bestmtry2 %<-% {tuneRF(Xs_no_response, Xs$Response,ntreeTry = myNtree,stepFactor = 1.2, improve = 0.01, trace=F, plot= F)}, silent = TRUE)
+        tryCatch(bestmtry2 <- tuneRF(Xs_no_response, Xs$Response,ntreeTry = myNtree,stepFactor = 1.2, improve = 0.01, trace=F, plot= F), error = function(e){cat("   Parameter mtry couldn't be optimised\n")})
         if (exists("bestmtry2")) {
           cat("   Parameter mtry has been optimised\n")
           Mtry2=bestmtry2[match(min(bestmtry2[,2]), bestmtry2[,2]),1]
           rf %<-% {randomForest(Xs_no_response,Xs$Response, mtry=Mtry2,ntree = myNtree, keep.forest=TRUE, importance=TRUE )}
         } else {  
-          cat("   Parameter mtry couldn't be optimised\n")
           rf %<-% {randomForest(Xs_no_response,Xs$Response,ntree = myNtree, keep.forest=TRUE, importance=TRUE )}
         }
       } else {
@@ -94,7 +92,7 @@ RF_analysis<-function(counts,Abiotic, target, myNtree, dirout, with_CV, with_opt
       
     } else {
       # cat("INFO: Total number of features used ", total_features,". Cross-validation suggests ",NV," features could be enough\n")
-      rf<-rf2
+      rf<-rf2 ## WHY?
       cat("   INFO: Total number of features used ", total_features,"\n")
     }
     
@@ -273,6 +271,11 @@ if (argv$b != "") {
   add_sufix="Abiotic"
 }
 
+## Pick paramters for troubleshooting
+# rRNA = '16S'
+# Tax_Level = 'Class'
+# fc = 'Thalassiosira rotula'
+
 for (rRNA in c("16S","18S")) { #rRNA="16S"
   if (rRNA == "16S")  tax_level_numbers<-list("Class"=3, "Order"=4,"Family"=5, "Genus"=6, "Species"=7,"ASV"=8 )
   if (rRNA == "18S")  tax_level_numbers<-list("Class"=5, "Order"=6,"Family"=7, "Genus"=8, "Species"=9,"ASV"=10 )
@@ -293,9 +296,8 @@ for (rRNA in c("16S","18S")) { #rRNA="16S"
     table_pred<-vector(mode = "list", length = length(ab_factors))
     i=0
     for (fc in ab_factors) { #fc="Amphipoda"   fc="DOC"                    
-      
       check<-na.omit(abiotics[[fc]])
-      if (length(check) > minSamp) {
+      if (length(check) > minSamp ) {
         cat("*** RF with ",Tax_Level," - ",rRNA," - ",fc, " \n")
         i=i+1
         table_pred[[i]]<-RF_analysis(DF_norm,abiotics, fc, 1000, Dout, with_CV=rf_with_CV, with_opt_mtry=rf_with_opt_mtry,  type_variable="Amplicon")
@@ -319,7 +321,6 @@ for (rRNA in c("16S","18S")) { #rRNA="16S"
       table_pred_xgb<-vector(mode = "list", length = length(ab_factors))
       j=0
       for (fc in ab_factors) {
-        
         check<-na.omit(abiotics[[fc]])
         if (length(check) > minSamp) {
           cat("*** xgb with ",Tax_Level," - ",rRNA, " - ",fc, " \n")
@@ -366,7 +367,7 @@ for (rRNA in c("16S","18S")) { #rRNA="16S"
         if (length(check) > minSamp) {
           cat("*** RF with VAE ",archt, " - ",rRNA," - ", fc, " \n")
           i=i+1
-          table_pred[[i]]<-RF_analysis(DF_norm,abiotics, fc, 1000, Dout3, with_CV=TRUE, with_opt_mtry=rf_with_opt_mtry,  type_variable="Latent feature")
+          table_pred[[i]]<-RF_analysis(DF_norm,abiotics, fc, 1000, Dout3, with_CV=rf_with_CV, with_opt_mtry=rf_with_opt_mtry,  type_variable="Latent feature")
         } else {cat("*** WARNING:", fc, "has less than ",minSamp," samples and won't be include in the analysis\n")}
       }
       table_pred= table_pred[lapply(table_pred,length)>0]
