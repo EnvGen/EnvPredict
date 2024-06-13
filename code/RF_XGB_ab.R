@@ -9,12 +9,12 @@ list_of_packages <- c("tidyverse","plyr","ggpubr","DiagrammeR","tidymodels", "ra
 suppressPackageStartupMessages(library("argparser"))
 
 # arguments
-p <- arg_parser("RFandXGB.R [options]")
+p <- arg_parser("RF_XGB_ab.R [options]")
 p <- add_argument(p, "-p", help="Directory with 16S_norm_clade_counts_taxlevel.stv", default="../seq_data/combined/16S")
 p <- add_argument(p, "-e", help="Directory with 18S_norm_clade_counts_taxlevel.stv", default="../seq_data/combined/18S")
 p <- add_argument(p, "-a", help="Directory with VAE latent features files", default="../RepresentationsFromDeepMicro")
 p <- add_argument(p, "-m", help="Physicochemical parameters to be predicted", default="../env_data/combined/physical_chemical_processed.tsv")
-p <- add_argument(p, "-b", help="plankton factors to be predicted", default="")
+p <- add_argument(p, "-b", help="plankton factors to be predicted", default="../env_data/combined/phytoplankton_filtered.tsv")
 p <- add_argument(p, "-t", help="Translation samples IDs, required when importing data from plankton factors", default="../env_data/combined/sample_id_translation.tsv")
 p <- add_argument(p, "-w", help="working directory", default="")
 p <- add_argument(p, "-o", help="output directory", default="../output")
@@ -23,7 +23,7 @@ argv <- parse_args(p)
 
 for (s in list_of_packages) { suppressPackageStartupMessages(library(s, character.only = TRUE))}
 
-setwd(argv$w)
+# setwd(argv$w)
 dir.create(argv$o)
 plan(multisession)
 #Extra settings
@@ -66,28 +66,30 @@ RF_analysis<-function(counts,Abiotic, target, myNtree, dirout, with_CV, with_opt
     if (with_CV) { 
       result %<-% {rfcv(X[!names(X) %in% "Response"], X$Response, cv.fold=5)}
       NV<-as.integer(names(which.min(result$error.cv)))
-      
       cat("   Total features will be reduced from ", total_features, "to ", NV, "\n")
       imp<-as.data.frame(importance(rf2))
       imp<-imp[order(imp[[1]], decreasing = TRUE), ]
       imp<-imp[1:NV,]
-      
+
       selected_seqs=c("Response",row.names(imp))
-      
       Xs<-X[, (names(X) %in% selected_seqs)]
       if (with_opt_mtry) {
-        try(bestmtry2 %<-% {tuneRF(Xs[, !names(Xs) %in% "Response"], Xs$Response,ntreeTry = myNtree,stepFactor = 1.2, improve = 0.01, trace=F, plot= F)}, silent = TRUE)
+        Xs_no_response <- as.data.frame(Xs[, !names(Xs) %in% "Response"]) ## For it not to crash if NV = 1
+        if(NV == 1){
+          colnames(Xs_no_response) <- selected_seqs[2]
+        }
+        try(bestmtry2 %<-% {tuneRF(Xs_no_response, Xs$Response,ntreeTry = myNtree,stepFactor = 1.2, improve = 0.01, trace=F, plot= F)}, silent = TRUE)
         if (exists("bestmtry2")) {
           cat("   Parameter mtry has been optimised\n")
           Mtry2=bestmtry2[match(min(bestmtry2[,2]), bestmtry2[,2]),1]
-          rf %<-% {randomForest(Xs[,!names(Xs) %in% "Response"],Xs$Response, mtry=Mtry2,ntree = myNtree, keep.forest=TRUE, importance=TRUE )}
+          rf %<-% {randomForest(Xs_no_response,Xs$Response, mtry=Mtry2,ntree = myNtree, keep.forest=TRUE, importance=TRUE )}
         } else {  
           cat("   Parameter mtry couldn't be optimised\n")
-          rf %<-% {randomForest(Xs[,!names(Xs) %in% "Response"],Xs$Response,ntree = myNtree, keep.forest=TRUE, importance=TRUE )}
+          rf %<-% {randomForest(Xs_no_response,Xs$Response,ntree = myNtree, keep.forest=TRUE, importance=TRUE )}
         }
       } else {
         cat("   Using default mtry value\n")
-        rf %<-% {randomForest(Xs[,!names(Xs) %in% "Response"],Xs$Response,ntree = myNtree, keep.forest=TRUE, importance=TRUE )}
+        rf %<-% {randomForest(Xs_no_response,Xs$Response,ntree = myNtree, keep.forest=TRUE, importance=TRUE )}
       }
       
     } else {
