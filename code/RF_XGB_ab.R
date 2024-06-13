@@ -14,7 +14,7 @@ p <- add_argument(p, "-p", help="Directory with 16S_norm_clade_counts_taxlevel.s
 p <- add_argument(p, "-e", help="Directory with 18S_norm_clade_counts_taxlevel.stv", default="../seq_data/combined/18S")
 p <- add_argument(p, "-a", help="Directory with VAE latent features files", default="../RepresentationsFromDeepMicro")
 p <- add_argument(p, "-m", help="Physicochemical parameters to be predicted", default="../env_data/combined/physical_chemical_processed.tsv")
-p <- add_argument(p, "-b", help="plankton factors to be predicted", default="../env_data/combined/phytoplankton_filtered.tsv")
+p <- add_argument(p, "-b", help="plankton factors to be predicted", default="")
 p <- add_argument(p, "-t", help="Translation samples IDs, required when importing data from plankton factors", default="../env_data/combined/sample_id_translation.tsv")
 p <- add_argument(p, "-w", help="working directory", default="")
 p <- add_argument(p, "-o", help="output directory", default="../output")
@@ -366,7 +366,7 @@ for (rRNA in c("16S","18S")) { #rRNA="16S"
         if (length(check) > minSamp) {
           cat("*** RF with VAE ",archt, " - ",rRNA," - ", fc, " \n")
           i=i+1
-          table_pred[[i]]<-RF_analysis(DF_norm,abiotics, fc, 1000, Dout3, with_CV=FALSE, with_opt_mtry=rf_with_opt_mtry,  type_variable="Latent feature")
+          table_pred[[i]]<-RF_analysis(DF_norm,abiotics, fc, 1000, Dout3, with_CV=TRUE, with_opt_mtry=rf_with_opt_mtry,  type_variable="Latent feature")
         } else {cat("*** WARNING:", fc, "has less than ",minSamp," samples and won't be include in the analysis\n")}
       }
       table_pred= table_pred[lapply(table_pred,length)>0]
