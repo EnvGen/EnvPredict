@@ -27,7 +27,7 @@ setwd(argv$w)
 dir.create(argv$o)
 plan(multisession)
 #Extra settings
-only_RF_part=F
+only_RF_part=T
 RF_extra="withCV_mtryopt"
 rf_with_CV=T
 rf_with_opt_mtry=T
