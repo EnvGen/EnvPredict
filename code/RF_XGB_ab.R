@@ -27,7 +27,7 @@ setwd(argv$w)
 dir.create(argv$o)
 plan(multisession)
 #Extra settings
-only_RF_part=T
+only_RF_part=F
 RF_extra="withCV_mtryopt"
 rf_with_CV=T
 rf_with_opt_mtry=T
@@ -186,7 +186,10 @@ xgb_analysis<-function(counts,Abiotic,target, dirout) {
     watchlist <- list(train=dtrain)
     
     params <- list(objective = "reg:squarederror", gamma=5)  
-    xgbcv <- xgb.cv( params = params, data = dtrain, nrounds = 100, nfold = 5, showsd = T, verbose=F, early.stop.round = 20, maximize = F)
+    if(length(unique(X[,'Response'])) >= 5){
+      xgbcv <- xgb.cv( params = params, data = dtrain, nrounds = 100, nfold = 5, showsd = T, verbose=F, early.stop.round = 20, maximize = F)}else{
+      xgbcv <-  xgb.cv( params = params, data = dtrain, nrounds = 100, nfold = 5, showsd = T, verbose=F, early.stop.round = 20, maximize = F, stratified = FALSE)
+      }
     
     
     bst <- xgb.train(data=dtrain, nrounds=xgbcv$best_iteration, watchlist=watchlist, eval.metric = "error", #eval.metric = "logloss", 
@@ -222,9 +225,10 @@ xgb_analysis<-function(counts,Abiotic,target, dirout) {
     xgb_ggplot <- xgb.ggplot.importance(importance_matrix = importance_matrix[1:60]) +theme_bw() 
     
     ggsave(paste(dirout,paste(paste(prefi,extratext, sep="_"),"pdf",sep="."),sep = "/"), xgb_ggplot, width = 82, height = 42, units = "cm")
-    gr<-xgb.plot.tree(model = bst,render=FALSE) 
-    
-    export_graph(gr, paste(dirout,paste(paste(prefi,extratext, sep="_"),"tree","pdf",sep="."),sep = "/"), width=1500, height=1900)
+    tryCatch(gr<-xgb.plot.tree(model = bst,render=FALSE), error = function(e) {cat("   Non-tree model (no tree plot)")})
+    if(exists("gr")){
+      export_graph(gr, paste(dirout,paste(paste(prefi,extratext, sep="_"),"tree","pdf",sep="."),sep = "/"), width=1500, height=1900)
+    }
     
     return(table_pred)
   }
@@ -240,8 +244,14 @@ xgb_analysis<-function(counts,Abiotic,target, dirout) {
   
   dir.create(dirout, recursive = T)
   set.seed(123)
-  
-  folds <- vfold_cv(X0, v = 5, strata = Response)
+  print(unique(X0$Response))
+  if(length(unique(X0$Response)) >= 5){
+    cat("   Stratified cross-validation")
+    folds <- vfold_cv(X0, v = 5, strata = Response)
+  }else{
+    cat("   Non-stratified cross-validation (too few unique response values)")
+    folds <- vfold_cv(X0, v = 5)
+  }
   predictions_list <- map(folds$splits, train_and_test_XGB)
   predictions <- bind_rows(predictions_list)
   
