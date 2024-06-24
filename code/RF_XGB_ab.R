@@ -286,7 +286,7 @@ if (argv$b != "") {
 # Tax_Level = 'Class'
 # fc = 'Thalassiosira rotula'
 
-for (rRNA in c("16S","18S")) { #rRNA="16S"
+for (rRNA in c("18S","16S")) { #rRNA="16S"
   if (rRNA == "16S")  tax_level_numbers<-list("Class"=3, "Order"=4,"Family"=5, "Genus"=6, "Species"=7,"ASV"=8 )
   if (rRNA == "18S")  tax_level_numbers<-list("Class"=5, "Order"=6,"Family"=7, "Genus"=8, "Species"=9,"ASV"=10 )
   
