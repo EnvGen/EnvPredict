@@ -361,9 +361,8 @@ for (rRNA in c("18S","16S")) { #rRNA="16S"
       archt_numbers=as.vector(sapply(VAE_features_files,function(x) sub("_norm_seqtab_18S_filt.csv","", x)))
     }
     
-    
     for (archt in archt_numbers ) {
-      num=grep(paste0("^",archt),VAE_features_files)
+      num=grep(paste0("^",archt, '_'),VAE_features_files)
       DF_norm=read.delim(paste(argv$a,VAE_features_files[num], sep="/"), header = TRUE)
       names(DF_norm)[1]<-"sample_id"
       DF_norm$sample_id <- sub("^X", "", DF_norm$sample_id)
