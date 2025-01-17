@@ -14,18 +14,19 @@ library(ranger)
 library(rsample)
 library(gbm)
 library(stringi)
+library(lubridate)
 
 ## Set files
-seqtab_file_18S = "seq_data/combined/18S/filtered_seqtab_18S.tsv" ## count matrix for each ASV & sample
-taxa_file_18S = "seq_data/combined/18S/filtered_taxa_18S.tsv" ## taxonomic annotation for each ASV
-seqtab_file_16S = "seq_data/combined/16S/filtered_seqtab_16S.tsv" ## count matrix for each ASV & sample
-taxa_file_16S =  "seq_data/combined/16S/filtered_taxa_16S.tsv" ## taxonomic annotation for each ASV
-phys_chem_file = "env_data/combined/physical_chemical_processed_translation.tsv"
+seqtab_file_18S = "../seq_data/combined/18S/filtered_seqtab_18S.tsv" ## count matrix for each ASV & sample
+taxa_file_18S = "../seq_data/combined/18S/filtered_taxa_18S.tsv" ## taxonomic annotation for each ASV
+seqtab_file_16S = "../seq_data/combined/16S/filtered_seqtab_16S.tsv" ## count matrix for each ASV & sample
+taxa_file_16S =  "../seq_data/combined/16S/filtered_taxa_16S.tsv" ## taxonomic annotation for each ASV
+phys_chem_file = "../env_data/combined/physical_chemical_processed_translation.tsv"
 #bact_plan_file = "env_data/combined/bacterioplankton_processed.tsv"
 #pico_plan_file = "env_data/combined/picoplankton_processed.tsv"
-phyt_plan_file = "env_data/combined/phytoplankton_processed.tsv"
-zoop_plan_file = "env_data/combined/zooplankton_processed.tsv"
-id_translation_file = "env_data/combined/physical_chemical_processed_translation.tsv"
+phyt_plan_file = "../env_data/combined/phytoplankton_processed.tsv"
+zoop_plan_file = "../env_data/combined/zooplankton_processed.tsv"
+id_translation_file = "../env_data/combined/physical_chemical_processed_translation.tsv"
 
 # read sequencing data
 asv_counts_18S = as.matrix(read.delim(seqtab_file_18S, row.names = 1))
@@ -67,12 +68,23 @@ rownames(phys_chem) = phys_chem[,1]
 year = year(phys_chem[,4])
 yday = yday(phys_chem[,4])
 ylength = rep(NA, length(yday))
+
+## TIme since midnight
+times = phys_chem$time_h
+times = interval(start = strptime("00:00:00", "%H:%M:%S"), end = strptime(times, "%H:%M:%S"))
+times = time_length(times, unit = 'minutes')
+times_since_midnight = times
+time_xcord = cos(2*pi*times/24*60)
+time_ycord = sin(2*pi*times/24*60)
+
 ix = which(!is.na(yday))
 ylength[ix] = yday(paste(as.character(year[ix]), "-12-31", sep = ""))
 yangle = 2*pi*yday/ylength
 yday_xcord = cos(yangle)
 yday_ycord = sin(yangle)
-phys_chem = t(cbind(year, yday, yday_xcord, yday_ycord, phys_chem[,c(9:25)]))
+
+phys_chem = t(cbind(year, yday, yday_xcord, yday_ycord, times, times_xcord, times_ycord, phys_chem[,c(9:26)]))
+
 
 ix = match(samples, colnames(phys_chem)) # samples for which we have sequence data
 phys_chem = phys_chem[,ix]
