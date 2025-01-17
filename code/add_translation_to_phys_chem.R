@@ -1,4 +1,5 @@
-setwd("//wsl.localhost/Ubuntu/home/krzjur/EnvPredict/code")
+setwd("C:/Users/krzysztof.jurdzins/OneDrive - KTH/Skrivbordet/ENVGEN_ndb/EnvPredict_github/EnvPredict/code")
+
 
 ## Define infiles
 
