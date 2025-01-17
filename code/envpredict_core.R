@@ -47,9 +47,8 @@ identical(colnames(asv_counts_16S), colnames(asv_counts_18S))
 colnames(asv_counts_16S) = gsub("^X", "", colnames(asv_counts_16S))
 samples = colnames(asv_counts_16S)
 
-alt_ids = as.matrix(read.delim(id_translation_file))
-alt_ids = alt_ids[,c(1,ncol(alt_ids))]
-alt_ids[,2] = gsub("-","", alt_ids[,2])
+alt_ids = read.delim(id_translation_file)
+alt_ids = cbind(alt_ids$sample_id, alt_ids$station_id_date)
 samples_alt = alt_ids[match(samples, alt_ids[,1]),2]
 
 ix = setdiff(1:length(samples_alt), grep("NA_", samples_alt)) # samples with station id
@@ -64,18 +63,18 @@ norm_asv_counts_18S = t(t(asv_counts_18S)/colSums(asv_counts_18S))
 
 # read physchem
 phys_chem = read.delim(phys_chem_file)
-rownames(phys_chem) = phys_chem[,1]
-year = year(phys_chem[,4])
-yday = yday(phys_chem[,4])
+rownames(phys_chem) = phys_chem$sample_id
+year = year(phys_chem$date)
+yday = yday(phys_chem$date)
 ylength = rep(NA, length(yday))
 
-## TIme since midnight
-times = phys_chem$time_h
-times = interval(start = strptime("00:00:00", "%H:%M:%S"), end = strptime(times, "%H:%M:%S"))
-times = time_length(times, unit = 'minutes')
-times_since_midnight = times
-time_xcord = cos(2*pi*times/24*60)
-time_ycord = sin(2*pi*times/24*60)
+## time of the day
+time = phys_chem$time_h
+time = interval(start = strptime("00:00:00", "%H:%M:%S"), end = strptime(time, "%H:%M:%S"))
+time = time_length(time, unit = 'minutes')
+time_since_midnight = time
+time_xcord = cos(2*pi*time/24*60)
+time_ycord = sin(2*pi*time/24*60)
 
 ix = which(!is.na(yday))
 ylength[ix] = yday(paste(as.character(year[ix]), "-12-31", sep = ""))
@@ -83,8 +82,16 @@ yangle = 2*pi*yday/ylength
 yday_xcord = cos(yangle)
 yday_ycord = sin(yangle)
 
-phys_chem = t(cbind(year, yday, yday_xcord, yday_ycord, times, times_xcord, times_ycord, phys_chem[,c(9:26)]))
-
+phys_chem = t(cbind(
+  year, 
+  yday, 
+  yday_xcord, 
+  yday_ycord, 
+  time, 
+  time_xcord, 
+  time_ycord,
+  phys_chem[,c('Longitude','Latitude','Salinity','Temperature','pH','Alkalinity','Secchi_depth','SiO3','N_tot','DIN','NH4','NO2','NO3','NO3_NO2','P_tot','Phosphate','DOC','Humus','Chl')]
+))
 
 ix = match(samples, colnames(phys_chem)) # samples for which we have sequence data
 phys_chem = phys_chem[,ix]
