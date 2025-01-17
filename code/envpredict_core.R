@@ -191,7 +191,9 @@ do_feature_selection <- function(features_matrix, occupancy) { # occupancy = pro
 
 ## Functions for running randomforest predictions
 run_randomforest_out_of_bag <- function(features_matrix, responses_matrix) {
-  predicted_responses_matrix = matrix(nrow = nrow(responses_matrix), ncol = ncol(responses_matrix))
+  predicted_responses_matrix = responses_matrix
+  predicted_responses_matrix[,] = NA
+  rownames(features_matrix) = paste("f", 1:nrow(features_matrix), sep= "")
   for (i in 1:nrow(responses_matrix)) {
     #rf = randomForest(t(features_matrix), y=responses_matrix[i,], importance=T, ntree = 1000)
     #predicted_responses_matrix[i,] = rf$predicted
@@ -205,7 +207,9 @@ run_randomforest_out_of_bag <- function(features_matrix, responses_matrix) {
 
 run_randomforest <- function(features_matrix, responses_matrix, numfolds, min_samples) {
   min_samples_in_fold = 1
-  predicted_responses_matrix = matrix(nrow = nrow(responses_matrix), ncol = ncol(responses_matrix))
+  predicted_responses_matrix = responses_matrix
+  predicted_responses_matrix[,] = NA
+  rownames(features_matrix) = paste("f", 1:nrow(features_matrix), sep= "")
   for (i in 1:nrow(responses_matrix)) {
     response = responses_matrix[i,]
     if (length(which(!is.na(response))) < min_samples) { next } # skip this parameter if too few non-NA samples
@@ -227,7 +231,9 @@ run_randomforest <- function(features_matrix, responses_matrix, numfolds, min_sa
 
 run_xgboost <- function(features_matrix, responses_matrix, numfolds, min_samples) {
   min_samples_in_fold = 1
-  predicted_responses_matrix = matrix(nrow = nrow(responses_matrix), ncol = ncol(responses_matrix))
+  predicted_responses_matrix = responses_matrix
+  predicted_responses_matrix[,] = NA
+  rownames(features_matrix) = paste("f", 1:nrow(features_matrix), sep= "")
   for (i in 1:nrow(responses_matrix)) {
     response = responses_matrix[i,]
     if (length(which(!is.na(response))) < min_samples) { next } # skip this parameter if too few non-NA samples
@@ -277,8 +283,8 @@ features_matrix = do_feature_selection(features_matrix, 0.1)
 predicted_responses_matrix_rf_ob = run_randomforest_out_of_bag(features_matrix, responses_matrix)
 
 ## for using plankton as features and physchem as responses
-features_matrix_full = zoo_plan_genus
-#features_matrix_full = phyt_plan_genus
+#features_matrix_full = zoo_plan_genus
+features_matrix_full = phyt_plan_genus
 responses_matrix_full = phys_chem
 features_matrix = extract_shared_samples(features_matrix_full, responses_matrix_full)$features_matrix
 responses_matrix = extract_shared_samples(features_matrix_full, responses_matrix_full)$responses_matrix
