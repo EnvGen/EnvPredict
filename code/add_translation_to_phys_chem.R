@@ -1,6 +1,8 @@
 setwd("C:/Users/krzysztof.jurdzins/OneDrive - KTH/Skrivbordet/ENVGEN_ndb/EnvPredict_github/EnvPredict/code")
 
 
+library(tidyverse)
+
 ## Define infiles
 
 metadata_file = "../env_data/combined/physical_chemical_processed.tsv"
@@ -40,9 +42,20 @@ metadata$station_id = station_ids[ix]
 ## Check that the same BY2 Arkona code is used in an SHARK dataset
 some_shark$station_id[some_shark$station_name == 'BY2 ARKONA'][1] == id
 
-## Reorder metadata and save
+## Reorder metadata
 
 metadata = metadata[,c(1,2, ncol(metadata), 3:(ncol(metadata)-1))]
+
+## Get the station_id_date
+
+metadata$station_id_date = paste(metadata$station_id, gsub('-', '', metadata$date), sep = "_")
+
+## Reorder
+iy_date = which(colnames(metadata) == "date")
+ncol(metadata)
+metadata = metadata[,c(1:iy_date, ncol(metadata), (iy_date+1):(ncol(metadata)-1))]
+
+## Save
 
 write.table(metadata,
             "../env_data/combined/physical_chemical_processed_translation.tsv",
