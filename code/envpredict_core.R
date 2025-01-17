@@ -372,7 +372,7 @@ plot(responses_matrix[ix,], predicted_responses_matrix_rf_10f[ix,], xlab = "", y
 
 ## for physiochem
 par(mfrow = c(5,4), mar=c(2,2,1,1), xpd = TRUE) # good size of figure: 750 x 530
-ix = match(c(
+parameters_to_plot = c(
   "Longitude",     
   "Latitude",      
   "Salinity",      
@@ -389,10 +389,11 @@ ix = match(c(
   "Phosphate",     
   "DOC",            
   "Humus",         
-  "Chl"),
-  rownames(responses_matrix))
+  "Chl")
+ix = match(parameters_to_plot, rownames(responses_matrix))
 for (i in 1:length(ix)) {
-  plot(responses_matrix[i,], predicted_responses_matrix_rf_10f[i,], xlab = "Observed", ylab = "Predicted", main = paste(rownames(cor_matr)[i], " r=", round(cor_matr[i,4], 2), sep = ""), pch = 1, col = "#3182bd", cex = 0.8)
+  plot(responses_matrix[ix[i],], predicted_responses_matrix_rf_ob[ix[i],], xlab = "Observed", ylab = "Predicted", main = paste(parameters_to_plot[i], " r=", round(cor_matr[ix[i],5], 2), sep = ""), pch = 1, col = "#3182bd", cex = 0.8)
+  #plot(responses_matrix[i,], predicted_responses_matrix_rf_10f[i,], xlab = "Observed", ylab = "Predicted", main = paste(rownames(cor_matr)[i], " r=", round(cor_matr[i,4], 2), sep = ""), pch = 1, col = "#3182bd", cex = 0.8)
   #plot(responses_matrix[i,], predicted_responses_matrix_xgb[i,], xlab = "Observed", ylab = "Predicted", main = paste(rownames(cor_matr)[i], " r=", round(cor_matr[i,6], 2), sep = ""), pch = 1, col = "#3182bd", cex = 0.8)
 }
 
