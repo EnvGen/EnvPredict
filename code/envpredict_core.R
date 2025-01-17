@@ -1,6 +1,6 @@
 
 ## Set working directory
-setwd("~/aquatic/envpredict")
+setwd("~/aquatic/envpredict/code")
 
 ## Load libraries
 library(lubridate)
