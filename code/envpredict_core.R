@@ -275,6 +275,31 @@ get_correlations_predictions <- function(responses_matrix, predicted_responses_m
   return(cor_matr)
 }
 
+make_scatterplots_actual_vs_predicted <- function(responses_matrix, predicted_responses_matrix) {
+  parameters_to_plot = c(
+    "Longitude", "Latitude", 
+    "yday_xcord", "yday_ycord",
+    "time_xcord", "time_ycord",
+    "Salinity", "Temperature",   
+    "pH", "Alkalinity",
+    "Secchi_depth", "SiO3",          
+    "N_tot", "DIN",           
+    "NH4", "NO3_NO2",       
+    "P_tot", "Phosphate",     
+    "DOC","Humus",         
+    "Chl"
+  )
+  len = ceiling(sqrt(length(parameters_to_plot)))
+  par(mfrow = c(len,len), mar=c(2,2,1,1), xpd = TRUE) # good size of figure: 750 x 530
+  ix = match(parameters_to_plot, rownames(responses_matrix))
+  for (i in 1:length(ix)) {
+    n = length(which(!is.na(responses_matrix[ix[i],])))
+    c = round(cor.test(responses_matrix[ix[i],], predicted_responses_matrix_rf_ob[ix[i],])$est, 2)
+    plot(responses_matrix[ix[i],], predicted_responses_matrix_rf_ob[ix[i],], xlab = "Observed", ylab = "Predicted", main = paste(parameters_to_plot[i], "r=", c, "n=", n), pch = 1, col = "#3182bd", cex = 0.8)
+  }
+}
+
+
 ## Run ML predictions
 
 ## use one of the below as features_matrix_full
@@ -348,15 +373,10 @@ responses_matrix = extract_shared_samples(features_matrix_full, responses_matrix
 predicted_responses_matrix_rf_ob = run_randomforest_out_of_bag(features_matrix, responses_matrix)
 
 
-## examples on how to run the actual predictions
-#predicted_responses_matrix_rf_5f = run_randomforest(features_matrix, responses_matrix, 5, 10)
-predicted_responses_matrix_rf_10f = run_randomforest(features_matrix, responses_matrix, 10, 10)
-#predicted_responses_matrix_rf_ob = run_randomforest_out_of_bag(features_matrix, responses_matrix)
-#predicted_responses_matrix_xgb = run_xgboost(features_matrix, responses_matrix, 5, 10)
 
 
-## Running physiochem predicitons on deep feature representation files
-output_files_path = "../output/RepresentationsFromDeepMicro/"
+## Running physiochem predictions on deep feature representation files
+output_files_path = "../output/RepresentationsFromDeepMicro"
 features_files_path = "../seq_data/combined/RepresentationsFromDeepMicro"
 list.files(features_files_path)
 infiles = sort(list.files(features_files_path))
@@ -371,10 +391,31 @@ for (i in 1:length(infiles)) {
   responses_matrix = extract_shared_samples(features_matrix_full, responses_matrix_full)$responses_matrix
   #features_matrix = do_feature_selection(features_matrix, 0.1)
   predicted_responses_matrix = run_randomforest(features_matrix, responses_matrix, 10, 10)
-  write.table(responses_matrix, paste(output_files_path, outfile_actual, sep = ""), sep="\t")
-  write.table(predicted_responses_matrix, paste(output_files_path, outfile_predicted, sep = ""), sep="\t")
+  write.table(responses_matrix, paste(output_files_path, outfile_actual, sep = "/"), sep="\t")
+  write.table(predicted_responses_matrix, paste(output_files_path, outfile_predicted, sep = "/"), sep="\t")
 }
 
+
+## Running physiochem predictions on seq files for different taxonomic levels
+output_files_path = "../output/DifferentTaxonomicLevels"
+features_files_path = "../seq_data/combined/16S_n_18S"
+list.files(features_files_path)
+infiles = sort(list.files(features_files_path, pattern="norm_")) # only include files starting with norm_
+for (i in 1:length(infiles)) {
+  outfile_actual = gsub(".tsv$","_RF10fold_Actual.tsv",infiles[i])
+  outfile_predicted = gsub(".tsv$","_RF10fold_Predictions.tsv",infiles[i])
+  responses_matrix_full = phys_chem
+  features_matrix_full = as.matrix(read.delim(paste(features_files_path, infiles[i], sep="/"), row.names = 1))
+  colnames(features_matrix_full) = gsub("^X", "", colnames(features_matrix_full))
+  #features_matrix_full = t(features_matrix_full)
+  features_matrix_full = use_alternative_sample_names(features_matrix_full)
+  features_matrix = extract_shared_samples(features_matrix_full, responses_matrix_full)$features_matrix
+  responses_matrix = extract_shared_samples(features_matrix_full, responses_matrix_full)$responses_matrix
+  features_matrix = do_feature_selection(features_matrix, 0.1)
+  predicted_responses_matrix = run_randomforest(features_matrix, responses_matrix, 10, 10)
+  write.table(responses_matrix, paste(output_files_path, outfile_actual, sep = "/"), sep="\t")
+  write.table(predicted_responses_matrix, paste(output_files_path, outfile_predicted, sep = "/"), sep="\t")
+}
 
 
 #### stuff
@@ -424,35 +465,7 @@ cor.test(responses_matrix[ix,], predicted_responses_matrix_rf_10f[ix,], xlab = "
 plot(responses_matrix[ix,], predicted_responses_matrix_rf_10f[ix,], xlab = "", ylab = "")
 
 ## for physiochem
-par(mfrow = c(5,5), mar=c(2,2,1,1), xpd = TRUE) # good size of figure: 750 x 530
-parameters_to_plot = c(
-  "Longitude",     
-  "Latitude",
-  "yday_xcord",
-  "yday_ycord",
-  "time_xcord",
-  "time_ycord",
-  "Salinity",      
-  "Temperature",   
-  "pH",            
-  "Alkalinity",
-  "Secchi_depth",  
-  "SiO3",          
-  "N_tot",         
-  "DIN",           
-  "NH4",           
-  "NO3_NO2",       
-  "P_tot",         
-  "Phosphate",     
-  "DOC",            
-  "Humus",         
-  "Chl")
-ix = match(parameters_to_plot, rownames(responses_matrix))
-for (i in 1:length(ix)) {
-  n = length(which(!is.na(responses_matrix[ix[i],])))
-  c = round(cor.test(responses_matrix[ix[i],], predicted_responses_matrix_rf_ob[ix[i],])$est, 2)
-  plot(responses_matrix[ix[i],], predicted_responses_matrix_rf_ob[ix[i],], xlab = "Observed", ylab = "Predicted", main = paste(parameters_to_plot[i], "r=", c, "n=", n), pch = 1, col = "#3182bd", cex = 0.8)
-}
+
 
 par(mfrow = c(1,1), mar=c(4,4,1,1), xpd = TRUE) # good size of figure: 750 x 530
 plot(cor_matr_physchem_16S[,4], cor_matr_physchem_18S[,4], xlim = c(0,1), ylim = c(0,1), xlab = "ML based on 16S", ylab = "ML based on 18S")
