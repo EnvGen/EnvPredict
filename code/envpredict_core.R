@@ -374,6 +374,7 @@ predicted_responses_matrix_rf_ob = run_randomforest_out_of_bag(features_matrix, 
 
 
 
+### Running predictions to be used in paper ###
 
 ## Running physiochem predictions on deep feature representation files
 output_files_path = "../output/RepresentationsFromDeepMicro"
@@ -394,7 +395,6 @@ for (i in 1:length(infiles)) {
   write.table(responses_matrix, paste(output_files_path, outfile_actual, sep = "/"), sep="\t")
   write.table(predicted_responses_matrix, paste(output_files_path, outfile_predicted, sep = "/"), sep="\t")
 }
-
 
 ## Running physiochem predictions on seq files for different taxonomic levels
 output_files_path = "../output/DifferentTaxonomicLevels"
@@ -418,7 +418,25 @@ for (i in 1:length(infiles)) {
 }
 
 
-#### stuff
+## Running physiochem predictions on phytoplankton (based on all and based on genera only) and on seq data, using the same set of samples
+
+
+## Running physiochem predictions on zooplankton (based on all and based on genera only) and on seq data, using the same set of samples
+
+
+### Running phytoplankton predictions (genera only?) based on seq data and physchem data, using the same set of samples
+
+
+### Running zooplankton predictions (genera only?) based on seq data and physchem data, using the same set of samples
+
+
+
+
+
+
+
+#####################
+#### other stuff ####
 
 summary(cor_matr)
 cbind(cor_matr[,1], cor_matr[,2], cor_matr[,5])
