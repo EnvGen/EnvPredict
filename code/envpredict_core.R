@@ -26,7 +26,7 @@ phys_chem_file = "../env_data/combined/physical_chemical_processed_translation.t
 #pico_plan_file = "env_data/combined/picoplankton_processed.tsv"
 phyt_plan_file = "../env_data/combined/phytoplankton_processed.tsv"
 zoop_plan_file = "../env_data/combined/zooplankton_processed.tsv"
-id_translation_file = "../env_data/combined/physical_chemical_processed_translation.tsv"
+# id_translation_file = "../env_data/combined/physical_chemical_processed_translation.tsv"
 
 # read sequencing data
 asv_counts_18S = as.matrix(read.delim(seqtab_file_18S, row.names = 1))
@@ -47,10 +47,15 @@ identical(colnames(asv_counts_16S), colnames(asv_counts_18S))
 colnames(asv_counts_16S) = gsub("^X", "", colnames(asv_counts_16S))
 samples = colnames(asv_counts_16S)
 
-alt_ids = read.delim(id_translation_file)
-alt_ids = cbind(alt_ids$sample_id, alt_ids$station_id_date)
+
+# read physchem
+phys_chem = read.delim(phys_chem_file)
+
+## Match the original and alternative sample ideas
+alt_ids = cbind(phys_chem$sample_id, phys_chem$station_id_date)
 samples_alt = alt_ids[match(samples, alt_ids[,1]),2]
 
+## Remove without station ID
 ix = setdiff(1:length(samples_alt), grep("NA_", samples_alt)) # samples with station id
 asv_counts_16S = asv_counts_16S[,ix]
 asv_counts_18S = asv_counts_18S[,ix]
@@ -61,8 +66,7 @@ colnames(asv_counts_16S) = colnames(asv_counts_18S) = samples_alt
 norm_asv_counts_16S = t(t(asv_counts_16S)/colSums(asv_counts_16S))
 norm_asv_counts_18S = t(t(asv_counts_18S)/colSums(asv_counts_18S))
 
-# read physchem
-phys_chem = read.delim(phys_chem_file)
+## Prepare physchem data
 rownames(phys_chem) = phys_chem$sample_id
 year = year(phys_chem$date)
 yday = yday(phys_chem$date)
