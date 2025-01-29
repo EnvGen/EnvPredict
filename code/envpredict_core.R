@@ -265,7 +265,7 @@ run_xgboost <- function(features_matrix, responses_matrix, numfolds, min_samples
 get_correlations_predictions <- function(responses_matrix, predicted_responses_matrix) {
   cor_matr = matrix(ncol = 4, nrow = nrow(responses_matrix))
   rownames(cor_matr) = rownames(responses_matrix)
-  colnames(cor_matr) = c("#non-NA samples","#non-0 samples", "pearson", "spearman")
+  colnames(cor_matr) = c("#non-NA_samples","#non-0_samples", "pearson", "spearman")
   for (i in 1:nrow(responses_matrix)) {
     cor_matr[i,1] = length(which(!is.na(responses_matrix[i,])))
     cor_matr[i,2] = length(which(responses_matrix[i,] > 0))
@@ -417,17 +417,61 @@ for (i in 1:length(infiles)) {
   write.table(predicted_responses_matrix, paste(output_files_path, outfile_predicted, sep = "/"), sep="\t")
 }
 
-
 ## Running physiochem predictions on phytoplankton (based on all and based on genera only) and on seq data, using the same set of samples
+responses_matrix_full = phys_chem
+# based on phyt_plan
+output_files_path = "../output/physchem_based_on_seqdata_or_microscopy"
+features_matrix_full_1 = phyt_plan
+features_matrix_full_2 = norm_asv_counts_16S
+these_sample = intersect(colnames(features_matrix_full_1), colnames(features_matrix_full_2))
+ix = match(these_sample, colnames(features_matrix_full_1))
+features_matrix_full_1 = features_matrix_full_1[, ix]
+features_matrix = extract_shared_samples(features_matrix_full_1, responses_matrix_full)$features_matrix
+features_matrix = do_feature_selection(features_matrix, 0.1)
+responses_matrix = extract_shared_samples(features_matrix_full_1, responses_matrix_full)$responses_matrix
+features_matrix = do_feature_selection(features_matrix, 0.1)
+predicted_responses_matrix = run_randomforest(features_matrix, responses_matrix, 10, 10)
+outfile_actual = "phytoplan-based_physchem_Actual.tsv"
+write.table(responses_matrix, paste(output_files_path, outfile_actual, sep = "/"), sep="\t")
+outfile_predicted = "phytoplan-based_physchem_Predictions.tsv"
+write.table(predicted_responses_matrix, paste(output_files_path, outfile_predicted, sep = "/"), sep="\t")
+# based on phyt_plan_genus
+features_matrix_full_1 = phyt_plan_genus
+features_matrix_full_2 = norm_asv_counts_16S
+these_sample = intersect(colnames(features_matrix_full_1), colnames(features_matrix_full_2))
+ix = match(these_sample, colnames(features_matrix_full_1))
+features_matrix_full_1 = features_matrix_full_1[, ix]
+features_matrix = extract_shared_samples(features_matrix_full_1, responses_matrix_full)$features_matrix
+features_matrix = do_feature_selection(features_matrix, 0.1)
+responses_matrix = extract_shared_samples(features_matrix_full_1, responses_matrix_full)$responses_matrix
+features_matrix = do_feature_selection(features_matrix, 0.1)
+predicted_responses_matrix = run_randomforest(features_matrix, responses_matrix, 10, 10)
+outfile_actual = "phytoplan_genus-based_physchem_Actual.tsv"
+write.table(responses_matrix, paste(output_files_path, outfile_actual, sep = "/"), sep="\t")
+outfile_predicted = "phytoplan_genus-based_physchem_Predictions.tsv"
+write.table(predicted_responses_matrix, paste(output_files_path, outfile_predicted, sep = "/"), sep="\t")
+# based on 16S ASVs
+ix = match(these_sample, colnames(features_matrix_full_2))
+features_matrix_full_2 = features_matrix_full_2[, ix]
+features_matrix = extract_shared_samples(features_matrix_full_2, responses_matrix_full)$features_matrix
+features_matrix = do_feature_selection(features_matrix, 0.1)
+responses_matrix = extract_shared_samples(features_matrix_full_2, responses_matrix_full)$responses_matrix
+features_matrix = do_feature_selection(features_matrix, 0.1)
+predicted_responses_matrix = run_randomforest(features_matrix, responses_matrix, 10, 10)
+outfile_actual = "16S-based_physchem_Actual.tsv"
+write.table(responses_matrix, paste(output_files_path, outfile_actual, sep = "/"), sep="\t")
+outfile_predicted = "16S-based_physchem_Predictions.tsv"
+write.table(predicted_responses_matrix, paste(output_files_path, outfile_predicted, sep = "/"), sep="\t")
+ncol(responses_matrix) # 328
 
 
 ## Running physiochem predictions on zooplankton (based on all and based on genera only) and on seq data, using the same set of samples
 
 
-### Running phytoplankton predictions (genera only?) based on seq data and physchem data, using the same set of samples
+## Running phytoplankton predictions (genera only?) based on seq data, seq data sequence matching, and physchem data, using the same set of samples
 
 
-### Running zooplankton predictions (genera only?) based on seq data and physchem data, using the same set of samples
+## Running zooplankton predictions (genera only?) based on seq data and physchem data, using the same set of samples
 
 
 
