@@ -26,7 +26,7 @@ phys_chem_file = "../env_data/combined/physical_chemical_processed_translation.t
 #pico_plan_file = "env_data/combined/picoplankton_processed.tsv"
 phyt_plan_file = "../env_data/combined/phytoplankton_processed.tsv"
 zoop_plan_file = "../env_data/combined/zooplankton_processed.tsv"
-id_translation_file = "../env_data/combined/physical_chemical_processed_translation.tsv"
+# id_translation_file = "../env_data/combined/physical_chemical_processed_translation.tsv"
 
 # read sequencing data
 asv_counts_18S = as.matrix(read.delim(seqtab_file_18S, row.names = 1))
@@ -47,10 +47,15 @@ identical(colnames(asv_counts_16S), colnames(asv_counts_18S))
 colnames(asv_counts_16S) = gsub("^X", "", colnames(asv_counts_16S))
 samples = colnames(asv_counts_16S)
 
-alt_ids = read.delim(id_translation_file)
-alt_ids = cbind(alt_ids$sample_id, alt_ids$station_id_date)
+
+# read physchem
+phys_chem = read.delim(phys_chem_file)
+
+## Match the original and alternative sample ideas
+alt_ids = cbind(phys_chem$sample_id, phys_chem$station_id_date)
 samples_alt = alt_ids[match(samples, alt_ids[,1]),2]
 
+## Remove without station ID
 ix = setdiff(1:length(samples_alt), grep("NA_", samples_alt)) # samples with station id
 asv_counts_16S = asv_counts_16S[,ix]
 asv_counts_18S = asv_counts_18S[,ix]
@@ -61,8 +66,7 @@ colnames(asv_counts_16S) = colnames(asv_counts_18S) = samples_alt
 norm_asv_counts_16S = t(t(asv_counts_16S)/colSums(asv_counts_16S))
 norm_asv_counts_18S = t(t(asv_counts_18S)/colSums(asv_counts_18S))
 
-# read physchem
-phys_chem = read.delim(phys_chem_file)
+## Prepare physchem data
 rownames(phys_chem) = phys_chem$sample_id
 year = year(phys_chem$date)
 yday = yday(phys_chem$date)
@@ -398,14 +402,14 @@ for (i in 1:length(infiles)) {
 
 ## Running physiochem predictions on seq files for different taxonomic levels
 output_files_path = "../output/DifferentTaxonomicLevels"
-features_files_path = "../seq_data/combined/16S_n_18S"
-list.files(features_files_path)
-infiles = sort(list.files(features_files_path, pattern="norm_")) # only include files starting with norm_
+features_files_path_16S = "../seq_data/combined/16S"
+features_files_path_18S = "../seq_data/combined/18S"
+infiles = sort(c(list.files(features_files_path_16S, pattern="norm_.+tsv$", full.names = TRUE), list.files(features_files_path_18S, pattern="norm_.+tsv$", full.names = TRUE))) # only include files starting with norm_
 for (i in 1:length(infiles)) {
-  outfile_actual = gsub(".tsv$","_RF10fold_Actual.tsv",infiles[i])
-  outfile_predicted = gsub(".tsv$","_RF10fold_Predictions.tsv",infiles[i])
+  outfile_actual = gsub(".tsv$","_RF10fold_Actual.tsv",basename(infiles[i])) ## Do we really neeed a separate actual table for each option?
+  outfile_predicted = gsub(".tsv$","_RF10fold_Predictions.tsv",basename(infiles[i]))
   responses_matrix_full = phys_chem
-  features_matrix_full = as.matrix(read.delim(paste(features_files_path, infiles[i], sep="/"), row.names = 1))
+  features_matrix_full = as.matrix(read.delim(infiles[i], row.names = 1))
   colnames(features_matrix_full) = gsub("^X", "", colnames(features_matrix_full))
   #features_matrix_full = t(features_matrix_full)
   features_matrix_full = use_alternative_sample_names(features_matrix_full)
