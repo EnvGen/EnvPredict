@@ -505,7 +505,7 @@ phys_chem_complete = feature_tables[['phys_chem']]
 hist(rowSums(! is.na(phys_chem_complete))/ncol(phys_chem_complete), breaks = 20)
 sort(rowSums(! is.na(phys_chem_complete))/ncol(phys_chem_complete))
 ix_phys_chem = which(rowSums(! is.na(phys_chem_complete))/ncol(phys_chem_complete) > 0.80)
-iy_phys_chem = which(complete.cases(t(phys_chem_complete[ix_phys_chem_complete,])))
+iy_phys_chem = which(complete.cases(t(phys_chem_complete[ix_phys_chem,])))
 
 phys_chem_complete = phys_chem_complete[ix_phys_chem,iy_phys_chem]
 
@@ -531,7 +531,7 @@ for (i in 1:length(response_tables)) {
     feature_matrix = do_feature_selection(feature_matrix, 0.1)
     predicted_responses_matrix_rf_ob = run_randomforest_out_of_bag(feature_matrix, response_matrix)
     write.table(response_matrix, paste(output_files_path, paste(response_name, "_", feature_name, "_RF10fold_Actual.tsv", sep = ""), sep = "/"), sep="\t")
-    write.table(predicted_responses_matrix_rf_ob, paste(output_files_path, paste(response_name, "_", feature_name, "_RF10fold_Predictions.tsv", sep = ""), sep = "/"), sep="\t")
+    write.table(predicted_responses_matrix_rf_ob, paste(output_files_path, paste(feature_name, "_", response_name, "_RF10fold_Predictions.tsv", sep = ""), sep = "/"), sep="\t")
   }
 }
 
@@ -547,8 +547,8 @@ c(nrow(features_matrix), nrow(responses_matrix), length(intersect(rownames(featu
 shared_genus = sort(intersect(rownames(features_matrix), rownames(responses_matrix)))
 
 features_matrix = features_matrix[shared_genus,]
-write.table(responses_matrix, paste(output_files_path, 'direct_matching_phyt_plan_genus_norm_asv_counts_18S_Actual.tsv', sep = "/"), sep="\t")
-write.table(features_matrix, paste(output_files_path, 'direct_matching_phyt_plan_genus_norm_asv_counts_18S_Predictions.tsv', sep = "/"), sep="\t")
+write.table(responses_matrix, paste(output_files_path, 'direct_matching_norm_clade_counts_18S_8_phyt_plan_genus_Actual.tsv', sep = "/"), sep="\t")
+write.table(features_matrix, paste(output_files_path, 'direct_matching_norm_clade_counts_18S_8_phyt_plan_genus_Predictions.tsv', sep = "/"), sep="\t")
 
 renorm_matching_abundance = features_matrix
 
@@ -556,8 +556,8 @@ for(k in 1:ncol(renorm_matching_abundance)){
   renorm_matching_abundance[,k] = renorm_matching_abundance[,k]/sum(renorm_matching_abundance[,k])
 }
 
-write.table(responses_matrix, paste(output_files_path, 'renomralized_direct_matching_phyt_plan_genus_norm_asv_counts_18S_Actual.tsv', sep = "/"), sep="\t")
-write.table(renorm_matching_abundance, paste(output_files_path, 'renomralized_direct_matching_phyt_plan_genus_norm_asv_counts_18S_Predictions.tsv', sep = "/"), sep="\t")
+write.table(responses_matrix, paste(output_files_path, 'renomralized_direct_matching_norm_clade_counts_18S_8_phyt_plan_genus_18S_Actual.tsv', sep = "/"), sep="\t")
+write.table(renorm_matching_abundance, paste(output_files_path, 'renomralized_direct_matching_norm_clade_counts_18S_8_phyt_plan_genus_18S_Predictions.tsv', sep = "/"), sep="\t")
 
 
 
