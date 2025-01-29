@@ -329,14 +329,15 @@ make_scatterplots_actual_vs_predicted <- function(responses_matrix, predicted_re
 features_matrix_full = norm_asv_counts_16S
 #features_matrix_full = norm_asv_counts_18S
 #features_matrix_full = rbind(norm_asv_counts_16S, norm_asv_counts_18S)
-responses_matrix_full = phys_chem
+#responses_matrix_full = phys_chem
+responses_matrix_full = phys_chem[10:13,]
 features_matrix = extract_shared_samples(features_matrix_full, responses_matrix_full)$features_matrix
 responses_matrix = extract_shared_samples(features_matrix_full, responses_matrix_full)$responses_matrix
 features_matrix = do_feature_selection(features_matrix, 0.1)
 
 predicted_responses_matrix_rf_ob = run_randomforest_out_of_bag(features_matrix, responses_matrix)
-predicted_responses_matrix_rf_10f = run_randomforest(features_matrix, responses_matrix, 10, 1)
-predicted_responses_matrix_xgb = run_xgboost(features_matrix, responses_matrix, 10, 1)
+predicted_responses_matrix_rf_10f = run_randomforest(features_matrix, responses_matrix, 10, 10)
+predicted_responses_matrix_xgb = run_xgboost(features_matrix, responses_matrix, 10, 10)
 
 cor_ob = get_correlations_predictions(responses_matrix, predicted_responses_matrix_rf_ob)
 cor_10f = get_correlations_predictions(responses_matrix, predicted_responses_matrix_rf_ob)
@@ -402,6 +403,8 @@ for (i in 1:length(infiles)) {
 }
 
 ## Running physiochem predictions on seq files for different taxonomic levels
+# 18S levels: Domain	Supergroup	Division	Subdivision	Class	Order	Family	Genus	Species
+# 16S levels: Domain	Phylum	Class	Order	Family Genus	Species
 output_files_path = "../output/DifferentTaxonomicLevels"
 if (!dir.exists(output_files_path)) { dir.create(output_files_path) }
 features_files_path_16S = "../seq_data/combined/16S"
