@@ -382,6 +382,7 @@ predicted_responses_matrix_rf_ob = run_randomforest_out_of_bag(features_matrix, 
 
 ## Running physiochem predictions on deep feature representation files
 output_files_path = "../output/RepresentationsFromDeepMicro"
+if (!dir.exists(output_files_path)) { dir.create(output_files_path) }
 features_files_path = "../seq_data/combined/RepresentationsFromDeepMicro"
 list.files(features_files_path)
 infiles = sort(list.files(features_files_path))
@@ -402,9 +403,11 @@ for (i in 1:length(infiles)) {
 
 ## Running physiochem predictions on seq files for different taxonomic levels
 output_files_path = "../output/DifferentTaxonomicLevels"
+if (!dir.exists(output_files_path)) { dir.create(output_files_path) }
 features_files_path_16S = "../seq_data/combined/16S"
 features_files_path_18S = "../seq_data/combined/18S"
 infiles = sort(c(list.files(features_files_path_16S, pattern="norm_.+tsv$", full.names = TRUE), list.files(features_files_path_18S, pattern="norm_.+tsv$", full.names = TRUE))) # only include files starting with norm_
+infiles = infiles[-grep("_1\\.tsv$", infiles)]
 for (i in 1:length(infiles)) {
   outfile_actual = gsub(".tsv$","_RF10fold_Actual.tsv",basename(infiles[i])) ## Do we really neeed a separate actual table for each option?
   outfile_predicted = gsub(".tsv$","_RF10fold_Predictions.tsv",basename(infiles[i]))
@@ -424,11 +427,80 @@ for (i in 1:length(infiles)) {
 
 ## Running physiochem predictions on phytoplankton (based on all and based on genera only) and on seq data, using the same set of samples
 
-
 ## Running physiochem predictions on zooplankton (based on all and based on genera only) and on seq data, using the same set of samples
 
-
 ### Running phytoplankton predictions (genera only?) based on seq data and physchem data, using the same set of samples
+
+output_files_path = "../output/phytoplankton_predicted/"
+if (!dir.exists(output_files_path)) { dir.create(output_files_path) }
+
+## Choose only the physicochemical paramters available for more than 70% of the samples
+## Threshold based on the hustogram plotted using the first code line below
+hist(rowSums(! is.na(phys_chem))/ncol(phys_chem), breaks = 20)
+sort(rowSums(! is.na(phys_chem))/ncol(phys_chem))
+ix_phys_chem = which(rowSums(! is.na(phys_chem))/ncol(phys_chem) > 0.70)
+iy_phys_chem = which(complete.cases(t(phys_chem[ix_phys_chem,])))
+length(iy_phys_chem)/ncol(phys_chem)
+
+phys_chem_complete = phys_chem[ix_phys_chem,iy_phys_chem]
+
+feature_tables = list(norm_asv_counts_18S, norm_asv_counts_16S, phys_chem_complete)
+names(feature_tables) = c("norm_asv_counts_18S", "norm_asv_counts_16S", "phys_chem_complete")
+response_tables = list(phyt_plan, phyt_plan_genus)
+names(response_tables) = c("phyt_plan", "phyt_plan_genus")
+
+## Get common cols across all the tables
+
+feature_col_names = lapply(feature_tables, colnames)
+response_col_names = lapply(response_tables, colnames)
+all_col_names = c(feature_col_names, response_col_names)
+cols_to_keep = Reduce(intersect, all_col_names)
+for(i in 1:length(feature_tables)) {
+  feature_tables[[i]] = feature_tables[[i]][,cols_to_keep]
+}
+for(i in 1:length(response_tables)) {
+  response_tables[[i]] = response_tables[[i]][,cols_to_keep]
+}
+
+
+for (i in 1:length(response_tables)) {
+  response_matrix = response_tables[[i]]
+  response_name = names(response_tables)[i]
+  for (j in 1:length(feature_tables)) {
+    feature_matrix = feature_tables[[j]]
+    feature_name = names(feature_tables)[j]
+    feature_matrix = do_feature_selection(feature_matrix, 0.1)
+    predicted_responses_matrix_rf_ob = run_randomforest_out_of_bag(feature_matrix, response_matrix)
+    write.table(response_matrix, paste(output_files_path, paste(response_name, "_", feature_name, "_RF10fold_Actual.tsv", sep = ""), sep = "/"), sep="\t")
+    write.table(predicted_responses_matrix_rf_ob, paste(output_files_path, paste(response_name, "_", feature_name, "_RF10fold_Predictions.tsv", sep = ""), sep = "/"), sep="\t")
+  }
+}
+
+
+## Relative abundance based on matching - only matching ASVs left, only Eukaryotes?
+
+features_matrix = norm_asv_counts_18S_genus[,cols_to_keep]
+
+responses_matrix = phyt_plan_genus[,cols_to_keep]
+
+c(nrow(features_matrix), nrow(responses_matrix), length(intersect(rownames(features_matrix), rownames(responses_matrix))))
+
+shared_genus = sort(intersect(rownames(features_matrix), rownames(responses_matrix)))
+
+features_matrix = features_matrix[shared_genus,]
+write.table(responses_matrix, paste(output_files_path, 'direct_matching_phyt_plan_genus_norm_asv_counts_18S_Actual', sep = "/"), sep="\t")
+write.table(features_matrix, paste(output_files_path, 'direct_matching_phyt_plan_genus_norm_asv_counts_18S_Predictions', sep = "/"), sep="\t")
+
+renorm_matching_abundance = features_matrix
+
+for(k in 1:ncol(renorm_matching_abundance)){
+  renorm_matching_abundance[,k] = renorm_matching_abundance[,k]/sum(renorm_matching_abundance[,k])
+}
+
+write.table(responses_matrix, paste(output_files_path, 'renomralized_direct_matching_phyt_plan_genus_norm_asv_counts_18S_Actual', sep = "/"), sep="\t")
+write.table(renorm_matching_abundance, paste(output_files_path, 'renomralized_direct_matching_phyt_plan_genus_norm_asv_counts_18S_Predictions', sep = "/"), sep="\t")
+
+
 
 
 ### Running zooplankton predictions (genera only?) based on seq data and physchem data, using the same set of samples
