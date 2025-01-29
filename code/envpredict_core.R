@@ -422,9 +422,9 @@ for (i in 1:length(infiles)) {
 }
 
 ## Running physiochem predictions on phytoplankton (based on all and based on genera only) and on seq data, using the same set of samples
+output_files_path = "../output/physchem_based_on_seqdata_or_phytoplan"
 responses_matrix_full = phys_chem
 # based on phyt_plan
-output_files_path = "../output/physchem_based_on_seqdata_or_microscopy"
 features_matrix_full_1 = phyt_plan
 features_matrix_full_2 = norm_asv_counts_16S
 these_sample = intersect(colnames(features_matrix_full_1), colnames(features_matrix_full_2))
@@ -470,9 +470,56 @@ ncol(responses_matrix) # 328
 
 
 ## Running physiochem predictions on zooplankton (based on all and based on genera only) and on seq data, using the same set of samples
+output_files_path = "../output/physchem_based_on_seqdata_or_zooplan"
+responses_matrix_full = phys_chem
+# based on zoo_plan
+features_matrix_full_1 = zoo_plan
+features_matrix_full_2 = norm_asv_counts_16S
+these_sample = intersect(colnames(features_matrix_full_1), colnames(features_matrix_full_2))
+ix = match(these_sample, colnames(features_matrix_full_1))
+features_matrix_full_1 = features_matrix_full_1[, ix]
+features_matrix = extract_shared_samples(features_matrix_full_1, responses_matrix_full)$features_matrix
+features_matrix = do_feature_selection(features_matrix, 0.1)
+responses_matrix = extract_shared_samples(features_matrix_full_1, responses_matrix_full)$responses_matrix
+features_matrix = do_feature_selection(features_matrix, 0.1)
+predicted_responses_matrix = run_randomforest(features_matrix, responses_matrix, 10, 10)
+outfile_actual = "zooplan-based_physchem_Actual.tsv"
+write.table(responses_matrix, paste(output_files_path, outfile_actual, sep = "/"), sep="\t")
+outfile_predicted = "zooplan-based_physchem_Predictions.tsv"
+write.table(predicted_responses_matrix, paste(output_files_path, outfile_predicted, sep = "/"), sep="\t")
+# based on zoo_plan_genus
+features_matrix_full_1 = zoo_plan_genus
+features_matrix_full_2 = norm_asv_counts_16S
+these_sample = intersect(colnames(features_matrix_full_1), colnames(features_matrix_full_2))
+ix = match(these_sample, colnames(features_matrix_full_1))
+features_matrix_full_1 = features_matrix_full_1[, ix]
+features_matrix = extract_shared_samples(features_matrix_full_1, responses_matrix_full)$features_matrix
+features_matrix = do_feature_selection(features_matrix, 0.1)
+responses_matrix = extract_shared_samples(features_matrix_full_1, responses_matrix_full)$responses_matrix
+features_matrix = do_feature_selection(features_matrix, 0.1)
+predicted_responses_matrix = run_randomforest(features_matrix, responses_matrix, 10, 10)
+outfile_actual = "zooplan_genus-based_physchem_Actual.tsv"
+write.table(responses_matrix, paste(output_files_path, outfile_actual, sep = "/"), sep="\t")
+outfile_predicted = "zooplan_genus-based_physchem_Predictions.tsv"
+write.table(predicted_responses_matrix, paste(output_files_path, outfile_predicted, sep = "/"), sep="\t")
+# based on 16S ASVs
+ix = match(these_sample, colnames(features_matrix_full_2))
+features_matrix_full_2 = features_matrix_full_2[, ix]
+features_matrix = extract_shared_samples(features_matrix_full_2, responses_matrix_full)$features_matrix
+features_matrix = do_feature_selection(features_matrix, 0.1)
+responses_matrix = extract_shared_samples(features_matrix_full_2, responses_matrix_full)$responses_matrix
+features_matrix = do_feature_selection(features_matrix, 0.1)
+predicted_responses_matrix = run_randomforest(features_matrix, responses_matrix, 10, 10)
+outfile_actual = "16S-based_physchem_Actual.tsv"
+write.table(responses_matrix, paste(output_files_path, outfile_actual, sep = "/"), sep="\t")
+outfile_predicted = "16S-based_physchem_Predictions.tsv"
+write.table(predicted_responses_matrix, paste(output_files_path, outfile_predicted, sep = "/"), sep="\t")
+ncol(responses_matrix) # 241
+
 
 
 ## Running phytoplankton predictions (genera only?) based on seq data, seq data sequence matching, and physchem data, using the same set of samples
+
 
 
 ## Running zooplankton predictions (genera only?) based on seq data and physchem data, using the same set of samples
