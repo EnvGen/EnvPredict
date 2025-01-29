@@ -476,22 +476,12 @@ ncol(responses_matrix) # 328
 
 ## Running phytoplankton predictions (genera only?) based on seq data, seq data sequence matching, and physchem data, using the same set of samples
 
-
 output_files_path = "../output/phytoplankton_predicted/"
 if (!dir.exists(output_files_path)) { dir.create(output_files_path) }
 
-## Choose only the physicochemical paramters available for more than 70% of the samples
-## Threshold based on the hustogram plotted using the first code line below
-hist(rowSums(! is.na(phys_chem))/ncol(phys_chem), breaks = 20)
-sort(rowSums(! is.na(phys_chem))/ncol(phys_chem))
-ix_phys_chem = which(rowSums(! is.na(phys_chem))/ncol(phys_chem) > 0.70)
-iy_phys_chem = which(complete.cases(t(phys_chem[ix_phys_chem,])))
-length(iy_phys_chem)/ncol(phys_chem)
 
-phys_chem_complete = phys_chem[ix_phys_chem,iy_phys_chem]
-
-feature_tables = list(norm_asv_counts_18S, norm_asv_counts_16S, phys_chem_complete)
-names(feature_tables) = c("norm_asv_counts_18S", "norm_asv_counts_16S", "phys_chem_complete")
+feature_tables = list(norm_asv_counts_18S, norm_asv_counts_16S, phys_chem)
+names(feature_tables) = c("norm_asv_counts_18S", "norm_asv_counts_16S", "phys_chem")
 response_tables = list(phyt_plan, phyt_plan_genus)
 names(response_tables) = c("phyt_plan", "phyt_plan_genus")
 
@@ -501,6 +491,29 @@ feature_col_names = lapply(feature_tables, colnames)
 response_col_names = lapply(response_tables, colnames)
 all_col_names = c(feature_col_names, response_col_names)
 cols_to_keep = Reduce(intersect, all_col_names)
+for(i in 1:length(feature_tables)) {
+  feature_tables[[i]] = feature_tables[[i]][,cols_to_keep]
+}
+for(i in 1:length(response_tables)) {
+  response_tables[[i]] = response_tables[[i]][,cols_to_keep]
+}
+
+## Choose only the physicochemical paramters available for more than 70% of the samples
+## Threshold based on the hustogram plotted using the first code line below
+phys_chem_complete = feature_tables[['phys_chem']]
+
+hist(rowSums(! is.na(phys_chem_complete))/ncol(phys_chem_complete), breaks = 20)
+sort(rowSums(! is.na(phys_chem_complete))/ncol(phys_chem_complete))
+ix_phys_chem = which(rowSums(! is.na(phys_chem_complete))/ncol(phys_chem_complete) > 0.80)
+iy_phys_chem = which(complete.cases(t(phys_chem_complete[ix_phys_chem_complete,])))
+
+phys_chem_complete = phys_chem_complete[ix_phys_chem,iy_phys_chem]
+
+ncol(phys_chem_complete)/ncol(phys_chem)
+
+feature_tables[['phys_chem']] = phys_chem_complete
+
+cols_to_keep = colnames(phys_chem_complete)
 for(i in 1:length(feature_tables)) {
   feature_tables[[i]] = feature_tables[[i]][,cols_to_keep]
 }
@@ -534,8 +547,8 @@ c(nrow(features_matrix), nrow(responses_matrix), length(intersect(rownames(featu
 shared_genus = sort(intersect(rownames(features_matrix), rownames(responses_matrix)))
 
 features_matrix = features_matrix[shared_genus,]
-write.table(responses_matrix, paste(output_files_path, 'direct_matching_phyt_plan_genus_norm_asv_counts_18S_Actual', sep = "/"), sep="\t")
-write.table(features_matrix, paste(output_files_path, 'direct_matching_phyt_plan_genus_norm_asv_counts_18S_Predictions', sep = "/"), sep="\t")
+write.table(responses_matrix, paste(output_files_path, 'direct_matching_phyt_plan_genus_norm_asv_counts_18S_Actual.tsv', sep = "/"), sep="\t")
+write.table(features_matrix, paste(output_files_path, 'direct_matching_phyt_plan_genus_norm_asv_counts_18S_Predictions.tsv', sep = "/"), sep="\t")
 
 renorm_matching_abundance = features_matrix
 
@@ -543,18 +556,15 @@ for(k in 1:ncol(renorm_matching_abundance)){
   renorm_matching_abundance[,k] = renorm_matching_abundance[,k]/sum(renorm_matching_abundance[,k])
 }
 
-write.table(responses_matrix, paste(output_files_path, 'renomralized_direct_matching_phyt_plan_genus_norm_asv_counts_18S_Actual', sep = "/"), sep="\t")
-write.table(renorm_matching_abundance, paste(output_files_path, 'renomralized_direct_matching_phyt_plan_genus_norm_asv_counts_18S_Predictions', sep = "/"), sep="\t")
+write.table(responses_matrix, paste(output_files_path, 'renomralized_direct_matching_phyt_plan_genus_norm_asv_counts_18S_Actual.tsv', sep = "/"), sep="\t")
+write.table(renorm_matching_abundance, paste(output_files_path, 'renomralized_direct_matching_phyt_plan_genus_norm_asv_counts_18S_Predictions.tsv', sep = "/"), sep="\t")
 
 
 
 
 ## Running zooplankton predictions (genera only?) based on seq data and physchem data, using the same set of samples
 
-
-
-
-
+## Build predictors based on 2019-2020 dataset and predict 2015-2017
 
 
 #####################
