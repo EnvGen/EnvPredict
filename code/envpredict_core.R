@@ -398,14 +398,14 @@ for (i in 1:length(infiles)) {
 
 ## Running physiochem predictions on seq files for different taxonomic levels
 output_files_path = "../output/DifferentTaxonomicLevels"
-features_files_path = "../seq_data/combined/16S_n_18S"
-list.files(features_files_path)
-infiles = sort(list.files(features_files_path, pattern="norm_")) # only include files starting with norm_
+features_files_path_16S = "../seq_data/combined/16S"
+features_files_path_18S = "../seq_data/combined/18S"
+infiles = sort(c(list.files(features_files_path_16S, pattern="norm_.+tsv$", full.names = TRUE), list.files(features_files_path_18S, pattern="norm_.+tsv$", full.names = TRUE))) # only include files starting with norm_
 for (i in 1:length(infiles)) {
-  outfile_actual = gsub(".tsv$","_RF10fold_Actual.tsv",infiles[i])
-  outfile_predicted = gsub(".tsv$","_RF10fold_Predictions.tsv",infiles[i])
+  outfile_actual = gsub(".tsv$","_RF10fold_Actual.tsv",basename(infiles[i])) ## Do we really neeed a separate actual table for each option?
+  outfile_predicted = gsub(".tsv$","_RF10fold_Predictions.tsv",basename(infiles[i]))
   responses_matrix_full = phys_chem
-  features_matrix_full = as.matrix(read.delim(paste(features_files_path, infiles[i], sep="/"), row.names = 1))
+  features_matrix_full = as.matrix(read.delim(infiles[i], row.names = 1))
   colnames(features_matrix_full) = gsub("^X", "", colnames(features_matrix_full))
   #features_matrix_full = t(features_matrix_full)
   features_matrix_full = use_alternative_sample_names(features_matrix_full)
