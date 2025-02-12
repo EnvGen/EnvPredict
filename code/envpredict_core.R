@@ -19,6 +19,9 @@ library(lubridate)
 ## Set files
 seqtab_file_18S = "../seq_data/combined/18S/filtered_seqtab_18S.tsv" ## count matrix for each ASV & sample
 taxa_file_18S = "../seq_data/combined/18S/filtered_taxa_18S.tsv" ## taxonomic annotation for each ASV
+## Set files
+seqtab_file_18S_with_metazoa = "../seq_data/combined/18S/seqtab_18S.tsv" ## count matrix for each ASV & sample
+taxa_file_18S_with_metazoa = "../seq_data/combined/18S/taxa_18S.tsv" ## taxonomic annotation for each ASV
 seqtab_file_16S = "../seq_data/combined/16S/filtered_seqtab_16S.tsv" ## count matrix for each ASV & sample
 taxa_file_16S =  "../seq_data/combined/16S/filtered_taxa_16S.tsv" ## taxonomic annotation for each ASV
 phys_chem_file = "../env_data/combined/physical_chemical_processed_translation.tsv"
@@ -31,19 +34,26 @@ zoop_plan_file = "../env_data/combined/zooplankton_processed.tsv"
 # read sequencing data
 asv_counts_18S = as.matrix(read.delim(seqtab_file_18S, row.names = 1))
 asv_taxa_18S = as.matrix(read.delim(taxa_file_18S, row.names = 1))[,1:9]
+asv_counts_18S_with_metazoa = as.matrix(read.delim(seqtab_file_18S_with_metazoa, row.names = 1))
+asv_taxa_18S_with_metazoa = as.matrix(read.delim(taxa_file_18S_with_metazoa, row.names = 1))[,1:9]
 asv_counts_16S = as.matrix(read.delim(seqtab_file_16S, row.names = 1))
 asv_taxa_16S = as.matrix(read.delim(taxa_file_16S, row.names = 1))[,1:7]
 
 colnames(asv_counts_18S) = gsub("^X", "", colnames(asv_counts_18S))
+colnames(asv_counts_18S_with_metazoa) = gsub("^X", "", colnames(asv_counts_18S_with_metazoa))
 colnames(asv_counts_16S) = gsub("^X", "", colnames(asv_counts_16S))
 rownames(asv_counts_18S) = paste(rownames(asv_counts_18S), "18S", sep = "_")
 rownames(asv_taxa_18S) = paste(rownames(asv_taxa_18S), "18S", sep = "_")
+rownames(asv_counts_18S_with_metazoa) = paste(rownames(asv_counts_18S_with_metazoa), "18S", sep = "_")
+rownames(asv_taxa_18S_with_metazoa) = paste(rownames(asv_taxa_18S_with_metazoa), "18S", sep = "_")
 rownames(asv_counts_16S) = paste(rownames(asv_counts_16S), "16S", sep = "_")
 rownames(asv_taxa_16S) = paste(rownames(asv_taxa_16S), "16S", sep = "_")
 
 identical(rownames(asv_counts_18S), rownames(asv_taxa_18S))
 identical(rownames(asv_counts_16S), rownames(asv_taxa_16S))
+identical(colnames(asv_counts_18S), colnames(asv_counts_18S_with_metazoa))
 identical(colnames(asv_counts_16S), colnames(asv_counts_18S))
+identical(colnames(asv_counts_16S), colnames(asv_counts_18S_with_metazoa))
 colnames(asv_counts_16S) = gsub("^X", "", colnames(asv_counts_16S))
 samples = colnames(asv_counts_16S)
 
@@ -59,12 +69,14 @@ samples_alt = alt_ids[match(samples, alt_ids[,1]),2]
 ix = setdiff(1:length(samples_alt), grep("NA_", samples_alt)) # samples with station id
 asv_counts_16S = asv_counts_16S[,ix]
 asv_counts_18S = asv_counts_18S[,ix]
+asv_counts_18S_with_metazoa = asv_counts_18S_with_metazoa[,ix]
 samples = samples[ix]
 samples_alt = samples_alt[ix]
-colnames(asv_counts_16S) = colnames(asv_counts_18S) = samples_alt
+colnames(asv_counts_16S) = colnames(asv_counts_18S) = colnames(asv_counts_18S_with_metazoa) = samples_alt
 
 norm_asv_counts_16S = t(t(asv_counts_16S)/colSums(asv_counts_16S))
 norm_asv_counts_18S = t(t(asv_counts_18S)/colSums(asv_counts_18S))
+norm_asv_counts_18S_with_metazoa = t(t(asv_counts_18S_with_metazoa)/colSums(asv_counts_18S_with_metazoa))
 
 ## Prepare physchem data
 rownames(phys_chem) = phys_chem$sample_id
@@ -579,7 +591,7 @@ for (i in 1:length(response_tables)) {
     feature_name = names(feature_tables)[j]
     feature_matrix = do_feature_selection(feature_matrix, 0.1)
     predicted_responses_matrix_rf_ob = run_randomforest_out_of_bag(feature_matrix, response_matrix)
-    write.table(response_matrix, paste(output_files_path, paste(response_name, "_", feature_name, "_RF10fold_Actual.tsv", sep = ""), sep = "/"), sep="\t")
+    write.table(response_matrix, paste(output_files_path, paste(feature_name, "_", response_name,  "_RF10fold_Actual.tsv", sep = ""), sep = "/"), sep="\t")
     write.table(predicted_responses_matrix_rf_ob, paste(output_files_path, paste(feature_name, "_", response_name, "_RF10fold_Predictions.tsv", sep = ""), sep = "/"), sep="\t")
   }
 }
@@ -605,15 +617,124 @@ for(k in 1:ncol(renorm_matching_abundance)){
   renorm_matching_abundance[,k] = renorm_matching_abundance[,k]/sum(renorm_matching_abundance[,k])
 }
 
-write.table(responses_matrix, paste(output_files_path, 'renomralized_direct_matching_norm_clade_counts_18S_8_phyt_plan_genus_18S_Actual.tsv', sep = "/"), sep="\t")
-write.table(renorm_matching_abundance, paste(output_files_path, 'renomralized_direct_matching_norm_clade_counts_18S_8_phyt_plan_genus_18S_Predictions.tsv', sep = "/"), sep="\t")
-
-
-
+write.table(responses_matrix, paste(output_files_path, 'renomralized_direct_matching_norm_clade_counts_18S_8_phyt_plan_genus_Actual.tsv', sep = "/"), sep="\t")
+write.table(renorm_matching_abundance, paste(output_files_path, 'renomralized_direct_matching_norm_clade_counts_18S_8_phyt_plan_genus_Predictions.tsv', sep = "/"), sep="\t")
 
 ## Running zooplankton predictions (genera only?) based on seq data and physchem data, using the same set of samples
 
+output_files_path = "../output/zooplankton_predicted/"
+if (!dir.exists(output_files_path)) { dir.create(output_files_path) }
+
+
+feature_tables = list(norm_asv_counts_18S, norm_asv_counts_16S, phys_chem)
+names(feature_tables) = c("norm_asv_counts_18S", "norm_asv_counts_16S", "phys_chem")
+response_tables = list(zoo_plan, zoo_plan_genus)
+names(response_tables) = c("zoo_plan", "zoo_plan_genus")
+
+## Get common cols across all the tables
+
+feature_col_names = lapply(feature_tables, colnames)
+response_col_names = lapply(response_tables, colnames)
+all_col_names = c(feature_col_names, response_col_names)
+cols_to_keep = Reduce(intersect, all_col_names)
+for(i in 1:length(feature_tables)) {
+  feature_tables[[i]] = feature_tables[[i]][,cols_to_keep]
+}
+for(i in 1:length(response_tables)) {
+  response_tables[[i]] = response_tables[[i]][,cols_to_keep]
+}
+
+## Choose only the physicochemical paramters available for more than 70% of the samples
+## Threshold based on the hustogram plotted using the first code line below
+phys_chem_complete = feature_tables[['phys_chem']]
+
+hist(rowSums(! is.na(phys_chem_complete))/ncol(phys_chem_complete), breaks = 20)
+sort(rowSums(! is.na(phys_chem_complete))/ncol(phys_chem_complete))
+ix_phys_chem = which(rowSums(! is.na(phys_chem_complete))/ncol(phys_chem_complete) > 0.80)
+iy_phys_chem = which(complete.cases(t(phys_chem_complete[ix_phys_chem,])))
+
+phys_chem_complete = phys_chem_complete[ix_phys_chem,iy_phys_chem]
+
+ncol(phys_chem_complete)/ncol(phys_chem)
+
+feature_tables[['phys_chem']] = phys_chem_complete
+
+cols_to_keep = colnames(phys_chem_complete)
+for(i in 1:length(feature_tables)) {
+  feature_tables[[i]] = feature_tables[[i]][,cols_to_keep]
+}
+for(i in 1:length(response_tables)) {
+  response_tables[[i]] = response_tables[[i]][,cols_to_keep]
+}
+
+
+for (i in 1:length(response_tables)) {
+  response_matrix = response_tables[[i]]
+  response_name = names(response_tables)[i]
+  for (j in 1:length(feature_tables)) {
+    feature_matrix = feature_tables[[j]]
+    feature_name = names(feature_tables)[j]
+    feature_matrix = do_feature_selection(feature_matrix, 0.1)
+    predicted_responses_matrix_rf_ob = run_randomforest_out_of_bag(feature_matrix, response_matrix)
+    write.table(response_matrix, paste(output_files_path, paste(feature_name, "_", response_name,  "_RF10fold_Actual.tsv", sep = ""), sep = "/"), sep="\t")
+    write.table(predicted_responses_matrix_rf_ob, paste(output_files_path, paste(feature_name, "_", response_name, "_RF10fold_Predictions.tsv", sep = ""), sep = "/"), sep="\t")
+  }
+}
+
+## Read the asv_counts with metazoa
+
+matching_norm_asv_counts_18S_with_metazoa = norm_asv_counts_18S_with_metazoa[,cols_to_keep]
+identical(colnames(matching_norm_asv_counts_18S_with_metazoa), colnames(response_tables[['zoo_plan_genus']]))
+
+## Get normalized genus counts
+
+with_metazoa_genus = NULL
+i = (ncol(asv_taxa_18S_with_metazoa)-1)
+clade = unique(asv_taxa_18S_with_metazoa[,i])
+clade = clade[!is.na(clade)]
+for (j in 1:length(clade)) {
+  ix = which(clade[j]==asv_taxa_18S_with_metazoa[,i])
+  if (length(ix) > 1) {
+    with_metazoa_genus = rbind(with_metazoa_genus, apply(matching_norm_asv_counts_18S_with_metazoa[ix,], 2, sum, na.rm=TRUE))
+  } else {
+    with_metazoa_genus = rbind(with_metazoa_genus, matching_norm_asv_counts_18S_with_metazoa[ix,])
+  }
+}
+rownames(with_metazoa_genus) = clade
+colnames(with_metazoa_genus) = colnames(matching_norm_asv_counts_18S_with_metazoa)
+
+## Relative abundance based on matching - only matching ASVs left, only Eukaryotes?
+
+features_matrix = norm_asv_counts_18S_genus[,cols_to_keep]
+
+responses_matrix = zoo_plan_genus[,cols_to_keep]
+
+c(nrow(features_matrix), nrow(responses_matrix), length(intersect(rownames(features_matrix), rownames(responses_matrix))))
+
+shared_genus = sort(intersect(rownames(features_matrix), rownames(responses_matrix)))
+
+features_matrix = features_matrix[shared_genus,]
+write.table(responses_matrix, paste(output_files_path, 'direct_matching_norm_clade_counts_18S_8_zoo_plan_genus_Actual.tsv', sep = "/"), sep="\t")
+write.table(features_matrix, paste(output_files_path, 'direct_matching_norm_clade_counts_18S_8_zoo_plan_genus_Predictions.tsv', sep = "/"), sep="\t")
+
+renorm_matching_abundance = features_matrix
+
+for(k in 1:ncol(renorm_matching_abundance)){
+  renorm_matching_abundance[,k] = renorm_matching_abundance[,k]/sum(renorm_matching_abundance[,k])
+}
+
+write.table(responses_matrix, paste(output_files_path, 'renomralized_direct_matching_norm_clade_counts_18S_8_zoo_plan_genus_18S_Actual.tsv', sep = "/"), sep="\t")
+write.table(renorm_matching_abundance, paste(output_files_path, 'renomralized_direct_matching_norm_clade_counts_18S_8_zoo_plan_genus_18S_Predictions.tsv', sep = "/"), sep="\t")
+
 ## Build predictors based on 2019-2020 dataset and predict 2015-2017
+
+output_files_path = "../output/2019_2020_predict_2015_2017/"
+
+ix_2019_2020 = which(metadata$year %in% c(2019, 2020))
+ix_2015_2017 = which(metadata$year %in% c(2015, 2016, 2017))
+
+norm_asv_counts_16S_2019_2020 = norm_asv_counts_16S[,ix_2019_2020]
+norm_asv_counts_18S_2019_2020 = norm_asv_counts_18S[,ix_2019_2020]
 
 
 #####################
