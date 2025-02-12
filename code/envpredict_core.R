@@ -705,7 +705,7 @@ colnames(with_metazoa_genus) = colnames(matching_norm_asv_counts_18S_with_metazo
 
 ## Relative abundance based on matching - only matching ASVs left, only Eukaryotes?
 
-features_matrix = norm_asv_counts_18S_genus[,cols_to_keep]
+features_matrix = with_metazoa_genus
 
 responses_matrix = zoo_plan_genus[,cols_to_keep]
 
@@ -730,12 +730,11 @@ write.table(renorm_matching_abundance, paste(output_files_path, 'renomralized_di
 
 output_files_path = "../output/2019_2020_predict_2015_2017/"
 
-ix_2019_2020 = which(metadata$year %in% c(2019, 2020))
-ix_2015_2017 = which(metadata$year %in% c(2015, 2016, 2017))
+ix_2019_2020 = which(phys_chem['year',] %in% c(2019, 2020))
+ix_2015_2017 = which(phys_chem['year',] %in% c(2015, 2016, 2017))
 
-norm_asv_counts_16S_2019_2020 = norm_asv_counts_16S[,ix_2019_2020]
-norm_asv_counts_18S_2019_2020 = norm_asv_counts_18S[,ix_2019_2020]
-
+samples_2019_2020 = colnames(phys_chem)[ix_2019_2020]
+samples_2015_2017 = colnames(phys_chem)[ix_2015_2017]
 
 #####################
 #### other stuff ####
