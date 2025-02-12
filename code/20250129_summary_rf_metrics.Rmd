@@ -1298,6 +1298,7 @@ pred_actual_tax <- pred_actual_combo %>%
     str_detect(model, "18S_9") ~ "species",
     str_detect(model, "seqtab_18S") ~ "ASV",
     TRUE ~ "other"
+  ))
 
 melted_data_tax <- melted_data %>%
   mutate(tax_level = case_when(
