@@ -781,9 +781,6 @@ responses_matrix_train = phyt_plan_genus[,which(colnames(phyt_plan_genus) %in% s
 features_matrix_target = norm_asv_counts_18S[,samples_2015_2017]
 responses_matrix_target = phyt_plan_genus[,which(colnames(phyt_plan_genus) %in% samples_2015_2017)]
 
-# features_matrix_train = do_feature_selection(features_matrix_train, 0.1)
-# features_matrix_target = features_matrix_target[rownames(features_matrix_train),]
-
 features_matrix_train = extract_shared_samples(features_matrix_train, responses_matrix_train)$features_matrix
 responses_matrix_train = extract_shared_samples(features_matrix_train, responses_matrix_train)$responses_matrix
 
@@ -793,6 +790,9 @@ features_matrix_target = extract_shared_samples(features_matrix_target, response
 responses_matrix_target = extract_shared_samples(features_matrix_target, responses_matrix_target)$responses_matrix
 
 identical(colnames(features_matrix_target),colnames(responses_matrix_target))
+
+features_matrix_train = do_feature_selection(features_matrix_train, 0.1)
+features_matrix_target = features_matrix_target[rownames(features_matrix_train),]
 
 predicted_responses = predict_randomforest(features_matrix_train, responses_matrix_train, features_matrix_target)
 
