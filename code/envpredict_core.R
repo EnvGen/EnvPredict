@@ -748,7 +748,7 @@ write.table(renorm_matching_abundance, paste(output_files_path, 'renomralized_di
 
 ## Build predictors based on 2019-2020 dataset and predict 2015-2017
 
-output_files_path = "../output/2019_2020_predict_2015_2017/"
+output_files_path = "../output/predict_2015_2017/"
 if (!dir.exists(output_files_path)) { dir.create(output_files_path) }
 
 ix_2019_2020 = which(phys_chem['year',] %in% c(2019, 2020))
