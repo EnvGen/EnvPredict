@@ -254,6 +254,27 @@ run_randomforest <- function(features_matrix, responses_matrix, numfolds, min_sa
   return(predicted_responses_matrix)
 }
 
+## come here 1
+predict_randomforest <- function(features_matrix_train, responses_matrix_train, features_matrix_target, min_samples = 10) {
+  if (!identical(rownames(features_matrix_train), rownames(features_matrix_target))) {
+    stop("Rownames of the feature matrices (i.e., ASVs/taxa) do not match!")
+  }
+  predicted_responses_matrix = matrix(ncol = ncol(features_matrix_target), nrow = nrow(responses_matrix_train))
+  colnames(predicted_responses_matrix) = colnames(features_matrix_target)
+  rownames(predicted_responses_matrix) = rownames(responses_matrix_train)
+  for (i in 1:nrow(responses_matrix_train)) {
+    response = responses_matrix_train[i,]
+    if (length(which(!is.na(response))) < min_samples) { next } # skip this parameter if too few non-NA samples
+    df = as.data.frame(cbind(response, t(features_matrix_train)))
+    df = df[which(!is.na(response)),]
+    #rf = ranger(response ~ ., data = df[trainingIndex,], num.trees = 2000, importance = 'impurity')
+    rf = ranger(response ~ ., data = df, num.trees = 2000, importance = 'none')
+    predicted_responses_matrix[i,] = predict(rf, t(features_matrix_target))$predictions  
+  }
+  return(predicted_responses_matrix)
+}
+
+
 run_xgboost <- function(features_matrix, responses_matrix, numfolds, min_samples) {
   min_samples_in_fold = 1
   predicted_responses_matrix = responses_matrix
@@ -596,8 +617,7 @@ for (i in 1:length(response_tables)) {
   }
 }
 
-
-## Relative abundance based on matching - only matching ASVs left, only Eukaryotes?
+## Relative abundance based on matching - only matching ASVs left
 
 features_matrix = norm_asv_counts_18S_genus[,cols_to_keep]
 
@@ -729,12 +749,55 @@ write.table(renorm_matching_abundance, paste(output_files_path, 'renomralized_di
 ## Build predictors based on 2019-2020 dataset and predict 2015-2017
 
 output_files_path = "../output/2019_2020_predict_2015_2017/"
+if (!dir.exists(output_files_path)) { dir.create(output_files_path) }
 
 ix_2019_2020 = which(phys_chem['year',] %in% c(2019, 2020))
 ix_2015_2017 = which(phys_chem['year',] %in% c(2015, 2016, 2017))
 
 samples_2019_2020 = colnames(phys_chem)[ix_2019_2020]
 samples_2015_2017 = colnames(phys_chem)[ix_2015_2017]
+
+## phys_chem_prediction based on 16S
+
+features_matrix_train = norm_asv_counts_16S[,samples_2019_2020]
+responses_matrix_train = phys_chem[,samples_2019_2020]
+features_matrix_target = norm_asv_counts_16S[,samples_2015_2017]
+responses_matrix_target = phys_chem[,samples_2015_2017]
+
+features_matrix_train = do_feature_selection(features_matrix_train, 0.1)
+features_matrix_target = features_matrix_target[rownames(features_matrix_train),]
+
+identical(colnames(features_matrix_train),colnames(responses_matrix_train))
+
+predicted_responses = predict_randomforest(features_matrix_train, responses_matrix_train, features_matrix_target)
+
+write.table(responses_matrix_target, paste(output_files_path, 'norm_asv_counts_16S_phys_chem_2015_2017_Actual.tsv', sep = "/"), sep="\t")
+write.table(predicted_responses, paste(output_files_path, 'norm_asv_counts_16S_phys_chem_2015_2017_Predictions.tsv', sep = "/"), sep="\t")
+
+## phyt_plan_genus_prediction based on 18S
+
+features_matrix_train = norm_asv_counts_18S[,samples_2019_2020]
+responses_matrix_train = phyt_plan_genus[,which(colnames(phyt_plan_genus) %in% samples_2019_2020)]
+features_matrix_target = norm_asv_counts_18S[,samples_2015_2017]
+responses_matrix_target = phyt_plan_genus[,which(colnames(phyt_plan_genus) %in% samples_2015_2017)]
+
+# features_matrix_train = do_feature_selection(features_matrix_train, 0.1)
+# features_matrix_target = features_matrix_target[rownames(features_matrix_train),]
+
+features_matrix_train = extract_shared_samples(features_matrix_train, responses_matrix_train)$features_matrix
+responses_matrix_train = extract_shared_samples(features_matrix_train, responses_matrix_train)$responses_matrix
+
+identical(colnames(features_matrix_train),colnames(responses_matrix_train))
+
+features_matrix_target = extract_shared_samples(features_matrix_target, responses_matrix_target)$features_matrix
+responses_matrix_target = extract_shared_samples(features_matrix_target, responses_matrix_target)$responses_matrix
+
+identical(colnames(features_matrix_target),colnames(responses_matrix_target))
+
+predicted_responses = predict_randomforest(features_matrix_train, responses_matrix_train, features_matrix_target)
+
+write.table(responses_matrix_target, paste(output_files_path, 'norm_asv_counts_18S_phyt_plan_genus_2015_2017_Actual.tsv', sep = "/"), sep="\t")
+write.table(predicted_responses, paste(output_files_path, 'norm_asv_counts_18S_phyt_plan_genus_2015_2017_Predictions.tsv', sep = "/"), sep="\t")
 
 #####################
 #### other stuff ####
