@@ -276,7 +276,7 @@ predict_randomforest <- function(features_matrix_train, responses_matrix_train, 
 }
 
 
-run_xgboost <- function(features_matrix, responses_matrix, numfolds, min_samples) {
+run_gbm <- function(features_matrix, responses_matrix, numfolds, min_samples) {
   min_samples_in_fold = 1
   predicted_responses_matrix = responses_matrix
   predicted_responses_matrix[,] = NA
