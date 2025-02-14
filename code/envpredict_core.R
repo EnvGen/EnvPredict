@@ -15,6 +15,7 @@ library(rsample)
 library(gbm)
 library(stringi)
 library(lubridate)
+library(caret)
 
 ## Set files
 seqtab_file_18S = "../seq_data/combined/18S/filtered_seqtab_18S.tsv" ## count matrix for each ASV & sample
@@ -242,7 +243,7 @@ run_randomforest <- function(features_matrix, responses_matrix, numfolds, min_sa
   return(predicted_responses_matrix)
 }
 
-run_xgboost <- function(features_matrix, responses_matrix, numfolds, min_samples) {
+run_gbm <- function(features_matrix, responses_matrix, numfolds, min_samples) {
   min_samples_in_fold = 1
   predicted_responses_matrix = responses_matrix
   predicted_responses_matrix[,] = NA
@@ -259,6 +260,41 @@ run_xgboost <- function(features_matrix, responses_matrix, numfolds, min_samples
       if (length(trainingIndex) >= min_samples_in_fold) {
         gbm <- gbm(response ~ ., data = df[trainingIndex,], distribution = "gaussian", n.trees = 10000, shrinkage = 0.001, interaction.depth = 2, n.minobsinnode = 1)
         predicted_responses_matrix[i,testingIndex] = predict(gbm, df[testingIndex,], n.trees = 10000)
+      }
+    }
+  }
+  return(predicted_responses_matrix)
+}
+
+run_xgboost_caret <- function(features_matrix, responses_matrix, numfolds_outer, numfolds_inner, min_samples) {
+  train_control = trainControl(method = "cv", number = numfolds_inner) # numfolds_inner = 5
+  min_samples_in_fold = 1
+  predicted_responses_matrix = responses_matrix
+  predicted_responses_matrix[,] = NA
+  rownames(features_matrix) = paste("f", 1:nrow(features_matrix), sep= "")
+  #for (i in 1:nrow(responses_matrix)) {
+  for (i in 1:3) {  
+    response = responses_matrix[i,]
+    if (length(which(!is.na(response))) < min_samples) { next } # skip this parameter if too few non-NA samples
+    df = as.data.frame(cbind(response, t(features_matrix)))
+    folds <- vfold_cv(df, v = numfolds_outer, strata = response)
+    df = as.data.frame(t(features_matrix))
+    for (j in 1:nrow(folds)) { # outer fold
+      trainingIndex <- folds$splits[[j]]$in_id 
+      testingIndex <- setdiff(1:length(response), trainingIndex)
+      trainingIndex = trainingIndex[which(!is.na(response[trainingIndex]))] # remove NA response samples
+      if (length(trainingIndex) >= min_samples_in_fold) {
+        xgb <- caret::train(
+          x = df[trainingIndex,],
+          y = response[trainingIndex],
+          trControl = train_control,
+          #tuneGrid = grid_default,
+          #method = "xgbTree",
+          method = "ranger",
+          modelType = "regression",
+          verbose = TRUE
+        )
+        predicted_responses_matrix[i,testingIndex] = predict(xgb, df[testingIndex,])
       }
     }
   }
@@ -324,20 +360,19 @@ make_scatterplots_actual_vs_predicted <- function(responses_matrix, predicted_re
 #responses_matrix_full = phyt_plan_genus
 #responses_matrix_full = norm_asv_counts_18S_genus
   
-
 ## for using 16S or 18S as features and physchem as responses
 features_matrix_full = norm_asv_counts_16S
 #features_matrix_full = norm_asv_counts_18S
 #features_matrix_full = rbind(norm_asv_counts_16S, norm_asv_counts_18S)
 #responses_matrix_full = phys_chem
-responses_matrix_full = phys_chem[10:13,]
+responses_matrix_full = phys_chem[c(10,12,26),]
 features_matrix = extract_shared_samples(features_matrix_full, responses_matrix_full)$features_matrix
 responses_matrix = extract_shared_samples(features_matrix_full, responses_matrix_full)$responses_matrix
 features_matrix = do_feature_selection(features_matrix, 0.1)
 
 predicted_responses_matrix_rf_ob = run_randomforest_out_of_bag(features_matrix, responses_matrix)
 predicted_responses_matrix_rf_10f = run_randomforest(features_matrix, responses_matrix, 10, 10)
-predicted_responses_matrix_xgb = run_xgboost(features_matrix, responses_matrix, 10, 10)
+predicted_responses_matrix_xgb = run_xgboost_caret(features_matrix, responses_matrix, 10, 10)
 
 cor_ob = get_correlations_predictions(responses_matrix, predicted_responses_matrix_rf_ob)
 cor_10f = get_correlations_predictions(responses_matrix, predicted_responses_matrix_rf_ob)
