@@ -35,8 +35,12 @@ zoop_plan_file = "../env_data/combined/zooplankton_processed.tsv"
 # read sequencing data
 asv_counts_18S = as.matrix(read.delim(seqtab_file_18S, row.names = 1))
 asv_taxa_18S = as.matrix(read.delim(taxa_file_18S, row.names = 1))[,1:9]
-asv_counts_18S_with_metazoa = as.matrix(read.delim(seqtab_file_18S_with_metazoa, row.names = 1))
-asv_taxa_18S_with_metazoa = as.matrix(read.delim(taxa_file_18S_with_metazoa, row.names = 1))[,1:9]
+#asv_counts_18S_with_metazoa = as.matrix(read.delim(seqtab_file_18S_with_metazoa, row.names = 1))
+#asv_taxa_18S_with_metazoa = as.matrix(read.delim(taxa_file_18S_with_metazoa, row.names = 1))[,1:9]
+
+asv_counts_18S_with_metazoa = as.matrix(read.delim(seqtab_file_18S, row.names = 1)) # wrong !
+asv_taxa_18S_with_metazoa = as.matrix(read.delim(taxa_file_18S, row.names = 1))[,1:9] # wrong !
+
 asv_counts_16S = as.matrix(read.delim(seqtab_file_16S, row.names = 1))
 asv_taxa_16S = as.matrix(read.delim(taxa_file_16S, row.names = 1))[,1:7]
 
@@ -74,6 +78,7 @@ asv_counts_18S_with_metazoa = asv_counts_18S_with_metazoa[,ix]
 samples = samples[ix]
 samples_alt = samples_alt[ix]
 colnames(asv_counts_16S) = colnames(asv_counts_18S) = colnames(asv_counts_18S_with_metazoa) = samples_alt
+
 
 norm_asv_counts_16S = t(t(asv_counts_16S)/colSums(asv_counts_16S))
 norm_asv_counts_18S = t(t(asv_counts_18S)/colSums(asv_counts_18S))
@@ -300,13 +305,17 @@ run_gbm <- function(features_matrix, responses_matrix, numfolds, min_samples) {
 }
 
 run_xgboost_caret <- function(features_matrix, responses_matrix, numfolds_outer, numfolds_inner, min_samples) {
-  train_control = trainControl(method = "cv", number = numfolds_inner) # numfolds_inner = 5
+  output_files_path = output_files_path = "../output/physchem_based_on_seqdata_xgboost"
+  outfile_actual = "norm_seqtab_16S_xgboost_Actual.tsv"
+  outfile_predicted = "norm_seqtab_16S_xgboost_Predictions.tsv"
+  
+  train_control = trainControl(method = "cv", number = numfolds_inner)
   min_samples_in_fold = 1
   predicted_responses_matrix = responses_matrix
   predicted_responses_matrix[,] = NA
   rownames(features_matrix) = paste("f", 1:nrow(features_matrix), sep= "")
-  #for (i in 1:nrow(responses_matrix)) {
-  for (i in 1:3) {  
+  for (i in 1:nrow(responses_matrix)) {
+  #for (i in 1:3) {  
     response = responses_matrix[i,]
     if (length(which(!is.na(response))) < min_samples) { next } # skip this parameter if too few non-NA samples
     df = as.data.frame(cbind(response, t(features_matrix)))
@@ -329,6 +338,8 @@ run_xgboost_caret <- function(features_matrix, responses_matrix, numfolds_outer,
         )
         predicted_responses_matrix[i,testingIndex] = predict(xgb, df[testingIndex,])
       }
+      #write.table(responses_matrix, paste(output_files_path, outfile_actual, sep = "/"), sep="\t")
+      #write.table(predicted_responses_matrix, paste(output_files_path, outfile_predicted, sep = "/"), sep="\t")
     }
   }
   return(predicted_responses_matrix)
@@ -397,18 +408,18 @@ make_scatterplots_actual_vs_predicted <- function(responses_matrix, predicted_re
 features_matrix_full = norm_asv_counts_16S
 #features_matrix_full = norm_asv_counts_18S
 #features_matrix_full = rbind(norm_asv_counts_16S, norm_asv_counts_18S)
-#responses_matrix_full = phys_chem
-responses_matrix_full = phys_chem[c(10,12,26),]
+responses_matrix_full = phys_chem
+#responses_matrix_full = phys_chem[c(10,12,26),]
 features_matrix = extract_shared_samples(features_matrix_full, responses_matrix_full)$features_matrix
 responses_matrix = extract_shared_samples(features_matrix_full, responses_matrix_full)$responses_matrix
 features_matrix = do_feature_selection(features_matrix, 0.1)
 
 predicted_responses_matrix_rf_ob = run_randomforest_out_of_bag(features_matrix, responses_matrix)
 predicted_responses_matrix_rf_10f = run_randomforest(features_matrix, responses_matrix, 10, 10)
-predicted_responses_matrix_xgb = run_xgboost_caret(features_matrix, responses_matrix, 10, 10)
+predicted_responses_matrix_xgb = run_xgboost_caret(features_matrix, responses_matrix, numfolds_outer = 10, numfolds_inner = 5, min_samples = 10)
 
 cor_ob = get_correlations_predictions(responses_matrix, predicted_responses_matrix_rf_ob)
-cor_10f = get_correlations_predictions(responses_matrix, predicted_responses_matrix_rf_ob)
+cor_10f = get_correlations_predictions(responses_matrix, predicted_responses_matrix_rf_10f)
 cor_xgb = get_correlations_predictions(responses_matrix, predicted_responses_matrix_xgb)
 
 ## for using plankton as features and physchem as responses
@@ -588,6 +599,54 @@ write.table(responses_matrix, paste(output_files_path, outfile_actual, sep = "/"
 outfile_predicted = "16S-based_physchem_Predictions.tsv"
 write.table(predicted_responses_matrix, paste(output_files_path, outfile_predicted, sep = "/"), sep="\t")
 ncol(responses_matrix) # 241
+
+
+## Running predictions of phytoplankton genera in microscopy and from 18S data, respectively, using physiochem data
+output_files_path = "../output/phytoplankton_genus_micr_and_18S_based_on_physchem"
+features_matrix_full = phys_chem
+responses_matrix_full_1 = norm_asv_counts_18S_genus
+responses_matrix_full_2 = phyt_plan_genus
+shared_samples = intersect(colnames(responses_matrix_full_1), colnames(responses_matrix_full_2))
+responses_matrix_full_1 = responses_matrix_full_1[,shared_samples]
+responses_matrix_full_2 = responses_matrix_full_2[,shared_samples]
+features_matrix = features_matrix_full[,shared_samples]
+features_to_include = c("yday_xcord",
+  "yday_ycord",
+  "time_xcord",
+  "time_ycord",
+  "Longitude",
+  "Latitude",
+  "Salinity",
+  "Temperature",
+  "SiO3", 
+  "N_tot", 
+  "DIN", 
+  "NH4",
+  "NO2",
+  "NO3",
+  "P_tot",
+  "Phosphate",
+  "Chl"
+)
+features_matrix = features_matrix[features_to_include,]
+features_matrix = features_matrix[, which(complete.cases(t(features_matrix[features_to_include,])))]
+pheatmap(features_matrix)
+shared_samples = colnames(features_matrix)
+responses_matrix_1 = responses_matrix_full_1[,shared_samples]
+responses_matrix_2 = responses_matrix_full_2[,shared_samples]
+length(shared_samples) # 
+
+predicted_responses_matrix = run_randomforest(features_matrix, responses_matrix_1, 10, 10)
+outfile_actual = "physchem-based_18S-genus_Actual.tsv"
+write.table(responses_matrix_1, paste(output_files_path, outfile_actual, sep = "/"), sep="\t")
+outfile_predicted = "physchem-based_18S-genus_Predictions.tsv"
+write.table(predicted_responses_matrix, paste(output_files_path, outfile_predicted, sep = "/"), sep="\t")
+
+predicted_responses_matrix = run_randomforest(features_matrix, responses_matrix_2, 10, 10)
+outfile_actual = "physchem-based_phytoplan-genus_Actual.tsv"
+write.table(responses_matrix_2, paste(output_files_path, outfile_actual, sep = "/"), sep="\t")
+outfile_predicted = "physchem-based_phytoplan-genus_Predictions.tsv"
+write.table(predicted_responses_matrix, paste(output_files_path, outfile_predicted, sep = "/"), sep="\t")
 
 
 
@@ -994,6 +1053,8 @@ if (use_alt_samplenames_responses == 0) {
 colnames(features_matrix_full) = features_samples_full
 colnames(responses_matrix_full) = responses_samples_full
 
+
+##
 
 
 
