@@ -1,0 +1,319 @@
+---
+title: "Plot_Results"
+author: "Emma"
+date: "2024-03-28"
+output: html_document
+---
+
+# Packages
+```{r packages, include=FALSE}
+library(tidyverse)
+library(purrr)
+library(stringr)
+library(MLmetrics)
+library(scales)
+library(ggpubr)
+library(cowplot)
+library(tools)
+```
+
+# Predictions
+```{r}
+# Random forest
+RF_dir <- "/Users/emma/Projects/EnvPredict/Predictions/DifferentTaxonomicLevels"
+
+# TabPNF
+PNF_dir <- "/Users/emma/Projects/EnvPredict/Predictions/TabPNF/DifferentTaxonomicLevels"
+
+# XGBoost
+
+```
+
+# Parameters predicted
+```{r}
+# list parameters to plot
+list_of_parameters <- c("Longitude", "Latitude", "Salinity", "Temperature", "pH", "Alkalinity", "Secchi_depth", "SiO3", "N_tot", "DIN", "NH4", "NO3_NO2", "P_tot", "Phosphate", "DOC", "Humus", "Chl")
+
+# Define custom shapes
+custom_shapes <- c(16, 17, 18, 19, 15, 8, 3, 4, 7, 9, 10, 12, 13, 14, 20, 21)
+```
+
+# Read in data
+## Random forest - 16S and 18S all taxonomic levels
+```{r}
+## Format colnames = sampleid, rownames = parameter
+
+# list and read "Actual.tsv" files
+list_actual_files = list.files(RF_dir, pattern = "Actual.tsv", full.names = TRUE)
+list_actual_dfs = lapply(list_actual_files, read.delim)
+
+# list and read RF "Predictions.tsv" files
+list_RF_files = list.files(RF_dir, pattern = "Predictions.tsv", full.names = TRUE)
+list_RF_dfs = lapply(list_RF_files, read.delim)
+
+# Function to transpose and format each dataframe and include the file name
+convert_table_long <- function(df, file_name) {
+  df <- df %>%
+    rownames_to_column(var = "parameter") %>%  # Convert row names to a column
+    pivot_longer(-parameter, names_to = "sample_id", values_to = "value") %>%
+    mutate(source_file = file_path_sans_ext(basename(file_name)))  # Add file name (without extension)
+  return(df)
+}
+
+# Apply the function to all "Actual.tsv" dataframes, adding file names
+actual_dfs <- mapply(convert_table_long, list_actual_dfs, list_actual_files, SIMPLIFY = FALSE)
+
+# Apply the function to all "Predictions.tsv" dataframes, adding file names
+RF_dfs <- mapply(convert_table_long, list_RF_dfs, list_RF_files, SIMPLIFY = FALSE)
+
+# Check sample IDs in predictions vs actual match
+identical(
+  actual_dfs[[1]] %>% select(sample_id) %>% pull(),
+  RF_dfs[[1]] %>% select(sample_id) %>% pull()
+)
+
+# View an example dataframe
+head(actual_dfs[[1]])
+
+# Combine all actual values into one dataframe
+actual_combined <- bind_rows(actual_dfs)
+
+actual_combined <- actual_combined %>% 
+  mutate(model = str_remove(source_file, "_Actual"))
+
+# Combine all RF predictions into one dataframe
+RF_combined <- bind_rows(RF_dfs)
+
+RF_combined <- RF_combined %>% 
+  mutate(model = str_remove(source_file, "_Predictions"))
+
+# Merge actual and RF prediction tables by "sample_id" and "variable"
+RF_table <- left_join(actual_combined, RF_combined, 
+                       by = c("sample_id", "parameter", "model"),
+                       suffix = c("_actual", "_predicted"))
+
+# View the combined table
+head(RF_table)
+```
+
+## TabPNF, amplicon data - 16S and 18S ASVs
+```{r}
+## Format colnames = sampleid, rownames = parameter
+## The models are taken from the file names so TabPNF files were renamed to contain "TabPNF" instead of "RF10Fold"
+
+# list and read "Actual.tsv" files
+list_actual_files = list.files(PNF_dir, pattern = "Actual.tsv", full.names = TRUE)
+list_actual_dfs = lapply(list_actual_files, read.delim)
+
+# list and read RF "Predictions.tsv" files
+list_PNF_files = list.files(PNF_dir, pattern = "Predictions.tsv", full.names = TRUE)
+list_PNF_dfs = lapply(list_PNF_files, read.delim)
+
+# Apply the function to all "Actual.tsv" dataframes, adding file names
+actual_dfs <- mapply(convert_table_long, list_actual_dfs, list_actual_files, SIMPLIFY = FALSE)
+
+# Apply the function to all "Predictions.tsv" dataframes, adding file names
+PNF_dfs <- mapply(convert_table_long, list_PNF_dfs, list_PNF_files, SIMPLIFY = FALSE)
+
+# Check sample IDs in predictions vs actual match
+identical(
+  actual_dfs[[1]] %>% select(sample_id) %>% pull(),
+  RF_dfs[[1]] %>% select(sample_id) %>% pull()
+)
+
+# View an example dataframe
+head(actual_dfs[[1]])
+
+# Combine all actual values into one dataframe
+actual_combined <- bind_rows(actual_dfs)
+
+actual_combined <- actual_combined %>% 
+  mutate(model = str_remove(source_file, "_Actual"))
+
+# Combine all RF predictions into one dataframe
+PNF_combined <- bind_rows(PNF_dfs)
+
+PNF_combined <- PNF_combined %>% 
+  mutate(model = str_remove(source_file, "_Predictions"))
+
+# Merge actual and RF prediction tables by "sample_id" and "variable"
+PNF_table <- left_join(actual_combined, PNF_combined, 
+                       by = c("sample_id", "parameter", "model"),
+                       suffix = c("_actual", "_predicted"))
+
+# View the combined table
+head(PNF_table)
+```
+
+## All data
+```{r}
+all_predictions <- bind_rows(RF_table, PNF_table)
+```
+
+
+## Calculate Pearson correlation
+```{r}
+all_predictions_corr <- all_predictions %>%
+  group_by(model, parameter) %>%
+  mutate(
+    # Pearson correlation using cor.test()
+    Pearson_test = list(cor.test(value_actual, value_predicted, method = "pearson")),
+    Pearson_corr = Pearson_test[[1]]$estimate,  # Extract correlation coefficient
+    R2_pearson = Pearson_corr^2,  # Squared correlation (R² from Pearson)
+    Pearson_pval = Pearson_test[[1]]$p.value,  # P-value to check significance
+  ) %>%
+  ungroup() %>%
+  select(-Pearson_test)  # Remove objects to keep dataframe clean
+
+# View the updated dataframe
+head(all_predictions_corr)
+```
+
+## Plot the data
+### Box plot - Random forest, predictions for all parameters
+```{r}
+all_predictions_corr %>%
+  filter(str_detect(model, "RF10fold")) %>%
+  ggplot(aes(x = parameter, y = Pearson_corr, fill = parameter)) +
+    geom_boxplot() +
+    labs(
+      x = "Model",
+      y = "Pearson_corr"
+    ) +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+## Add metadata to dataframe from plotting
+```{r}
+# gene - 16S or 18S
+all_predictions_meta <- all_predictions_corr %>%
+  mutate(gene = ifelse(str_detect(model, "18S"), "18S", "16S"))
+
+# model - Random_forest or TabPNF
+all_predictions_meta <- all_predictions_meta %>%
+  mutate(method = ifelse(str_detect(model, "RF10fold"), "Random_forest", "TabPNF"))
+
+# Add named taxonomic levels
+all_predictions_meta <- all_predictions_meta %>%
+  mutate(tax_level = case_when(
+    str_detect(model, "16S_2") ~ "phylum",
+    str_detect(model, "16S_3") ~ "class",
+    str_detect(model, "16S_4") ~ "order",
+    str_detect(model, "16S_5") ~ "family",
+    str_detect(model, "16S_6") ~ "genus",
+    str_detect(model, "16S_7") ~ "species",
+    str_detect(model, "seqtab_16S") ~ "ASV",
+    str_detect(model, "18S_2") ~ "supergroup",
+    str_detect(model, "18S_3") ~ "division",
+    str_detect(model, "18S_4") ~ "subdivision",
+    str_detect(model, "18S_5") ~ "class",
+    str_detect(model, "18S_6") ~ "order",
+    str_detect(model, "18S_7") ~ "family",
+    str_detect(model, "18S_8") ~ "genus",
+    str_detect(model, "18S_9") ~ "species",
+    str_detect(model, "seqtab_18S") ~ "ASV",
+    TRUE ~ "other"
+  ))
+
+# Define the order for each amplicon_type
+order_16S <- c("phylum", "class", "order", "family", "genus", "species", "ASV")
+order_18S <- c("supergroup", "division", "subdivision", "class", "order", "family", "genus", "species", "ASV")
+
+# Apply the order for amplicon_type
+all_predictions_meta <- all_predictions_meta %>%
+  mutate(tax_level = case_when(
+    gene == "16S" ~ factor(tax_level, levels = order_16S),
+    gene == "18S" ~ factor(tax_level, levels = order_18S)))
+
+# Create gene + tax level column
+all_predictions_meta <- all_predictions_meta %>% unite("type", gene, tax_level, sep = "_", remove = F)
+
+# Define the order of gene + taxonomic level
+order_type <- c("16S_phylum", "16S_class", "16S_order", "16S_family", "16S_genus", "16S_species", "16S_ASV", "18S_supergroup", "18S_division", "18S_subdivision", "18S_class", "18S_order", "18S_family", "18S_genus", "18S_species", "18S_ASV")
+
+# Apply the order of gene + taxonomic level
+all_predictions_meta <- all_predictions_meta %>%
+  mutate(type = factor(type, levels = order_type))
+
+# Apply the order of gene + taxonomic level
+all_predictions_meta <- all_predictions_meta %>%
+  mutate(parameter = factor(parameter, levels = list_of_parameters))
+
+all_predictions_meta %>% distinct(parameter)
+```
+
+### Box plot - Random Forest at different taxonomic levels
+```{r}
+all_predictions_meta %>% 
+  filter(method == "Random_forest") %>%
+ggplot(aes(x = type, y = Pearson_corr, fill = tax_level)) +
+  geom_boxplot() +
+  labs(
+    x = "Model",
+    y = "Pearson correlation (R)",
+    fill = "Taxonomic level"
+  ) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, colour = "black", size = 10),
+        axis.text.y = element_text(colour = "black", size = 10),
+        panel.border = element_rect(colour = "black", fill = NA),
+        axis.ticks = element_line(colour = "black"),
+        axis.title = element_text(size = 12),
+        legend.title = element_text(size = 12, colour = "black"),
+        legend.text = element_text(size = 10, colour = "black"))
+
+ggsave(plot = last_plot(), filename = "Plots/manuscript_draft/Random_forest_taxonomic_levels.png", width = 6, height = 3.5, units = "in")
+```
+
+### Box plot - Random forest vs TabPNF (ASVs only)
+```{r}
+all_predictions_meta %>% 
+  filter(tax_level == "ASV") %>%
+  filter(parameter %in% list_of_parameters) %>%
+ggplot(aes(x = model, y = Pearson_corr)) +
+  geom_boxplot() +
+  geom_point(aes(color = parameter, shape = parameter), alpha = 0.6, size = 3) +
+  labs(
+    x = "Model",
+    y = "Pearson correlation (R)",
+    fill = "Taxonomic level"
+  ) +
+  scale_shape_manual(values = custom_shapes) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, colour = "black", size = 10),
+        axis.text.y = element_text(colour = "black", size = 10),
+        panel.border = element_rect(colour = "black", fill = NA),
+        axis.ticks = element_line(colour = "black"),
+        axis.title = element_text(size = 12),
+        legend.title = element_text(size = 12, colour = "black"),
+        legend.text = element_text(size = 10, colour = "black")) +
+  guides(
+        fill = guide_legend(ncol = 2),
+        color = guide_legend(ncol = 2),
+        shape = guide_legend(ncol = 2)
+    )
+
+ggsave(plot = last_plot(), filename = "Plots/manuscript_draft/Random_forest_vs_TabPNF_ASVs.png", width = 6, height = 5, units = "in")
+```
+
+### Box plot - Random forest - 16S vs 18S, all parameters
+```{r}
+all_predictions_meta %>% 
+  filter(method == "Random_forest") %>%
+  filter(parameter %in% list_of_parameters) %>%
+ggplot(aes(x = gene, y = Pearson_corr, fill = gene)) +
+    geom_boxplot(outlier.shape = NA, alpha = 0) +
+    geom_point(aes(color = tax_level, shape = tax_level), alpha = 0.6, size = 3) +
+    scale_shape_manual(values = custom_shapes) +
+    theme_minimal() +
+    theme_cowplot() +
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+          strip.background = element_blank(),
+          strip.text = element_text(size = 10, margin = margin(t = 1, b = 1))) +
+    labs(x = "Taxonomic level",
+         y = "Pearson correlation (R)") +
+    facet_wrap(~ parameter, nrow = 1)
+
+ggsave(plot = last_plot(), filename = "Plots/manuscript_draft/Random_forest_16S_vs_18S_all_parameters.png",  height = 6, width = 18)
+```
