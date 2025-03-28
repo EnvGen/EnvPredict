@@ -410,6 +410,6 @@ write.table(norm_seqtab_18S,
             file = paste('../seq_data/combined/18S/norm_seqtab_18S.tsv', sep = ''),
             sep = '\t', row.names = TRUE, col.names = TRUE)
 
-save.image('read_data.Rdata')
+# save.image('read_data.Rdata')
 
 ### FInished reading data ###
