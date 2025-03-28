@@ -331,15 +331,15 @@ run_xgboost_caret <- function(features_matrix, responses_matrix, numfolds_outer,
           y = response[trainingIndex],
           trControl = train_control,
           #tuneGrid = grid_default,
-          #method = "xgbTree",
-          method = "ranger",
+          method = "xgbTree",
+          #method = "ranger",
           modelType = "regression",
           verbose = TRUE
         )
         predicted_responses_matrix[i,testingIndex] = predict(xgb, df[testingIndex,])
       }
-      #write.table(responses_matrix, paste(output_files_path, outfile_actual, sep = "/"), sep="\t")
-      #write.table(predicted_responses_matrix, paste(output_files_path, outfile_predicted, sep = "/"), sep="\t")
+      write.table(responses_matrix, paste(output_files_path, outfile_actual, sep = "/"), sep="\t")
+      write.table(predicted_responses_matrix, paste(output_files_path, outfile_predicted, sep = "/"), sep="\t")
     }
   }
   return(predicted_responses_matrix)
