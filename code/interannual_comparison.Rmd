@@ -1,0 +1,253 @@
+---
+title: "Evaluation of interannual predicitions"
+author: "Krzysztof"
+date: "2025-03-28"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+
+```{r packages, include=FALSE}
+library(dplyr)
+library(ggplot2)
+library(reshape2)
+library(tidyr)
+library(stringr)
+library(MLmetrics)
+library(ComplexHeatmap)
+library(viridis)
+library(scales)
+library(wesanderson)
+```
+
+
+```{r read_files}
+base_path = "../output/predict_2015_2017/"
+
+# list and read "Predictions.tsv" files
+list_of_prediction_dfs_name = list.files(base_path, pattern = "Predictions.tsv", full.names = TRUE)
+list_of_prediction_dfs = lapply(list_of_prediction_dfs_name, read.delim)
+
+# rename the columns
+for (i in 1:length(list_of_prediction_dfs)){
+  colnames(list_of_prediction_dfs[[i]]) <- str_remove(colnames(list_of_prediction_dfs[[i]]), "Predicted_")
+}
+
+list_of_parameters = colnames(list_of_prediction_dfs[[i]])
+list_of_parameters = list_of_parameters[!list_of_parameters %in% c("sample_id")]
+
+# list and read "Actual_values.tsv" files
+list_of_true_dfs_name = list.files(base_path, pattern = "Actual.tsv", full.names = TRUE)
+# read the files
+list_of_true_dfs = lapply(list_of_true_dfs_name, read.delim)
+
+# list of model names
+list_of_true_dfs_name = list.files(base_path, pattern = "Actual.tsv", full.names = FALSE)
+model_names = str_remove(list_of_true_dfs_name, "_Actual.tsv")
+
+model_names_base = str_remove(model_names, "_2015_2017")
+
+plot_folder = '../output/interannual_comparison_plots/'
+if (!dir.exists(plot_folder)){
+  dir.create(plot_folder)
+}
+
+
+
+```
+
+
+Load the 16S ASV based predicitons and actual data: Training on the whole dataset
+
+```{r}
+base_path_phys_chem = "../output/DifferentTaxonomicLevels/"
+
+phys_chem_cv_predicitons = read.delim(paste0(base_path_phys_chem, "norm_seqtab_16S_RF10fold_Predictions.tsv"))
+phys_chem_cv_actual = read.delim(paste0(base_path_phys_chem, "norm_seqtab_16S_RF10fold_Actual.tsv"))
+
+base_path_phyt_plan = "../output/phytoplankton_predicted/"
+
+phyt_plan_genus_cv_predicitons = read.delim(paste0(base_path_phyt_plan, "norm_asv_counts_18S_phyt_plan_genus_RF10fold_Predictions.tsv"))
+phyt_plan_genus_cv_actual = read.delim(paste0(base_path_phyt_plan, "norm_asv_counts_18S_phyt_plan_genus_RF10fold_Actual.tsv"))
+
+base_path_zoo_plan = "../output/zooplankton_predicted/"
+
+zoo_plan_genus_cv_predicitons = read.delim(paste0(base_path_zoo_plan, "norm_asv_counts_16S_zoo_plan_genus_RF10fold_Predictions.tsv"))
+zoo_plan_genus_cv_actual = read.delim(paste0(base_path_zoo_plan, "norm_asv_counts_16S_zoo_plan_genus_RF10fold_Actual.tsv"))
+
+```
+
+Load the 16S ASV based predicitons and actual data: 2019-2020 training and prediction
+
+```{r}
+base_path_2019_2020 = "../output/only_2019_2020/"
+
+phys_chem_cv_predicitons_2019 = read.delim(paste0(base_path_2019_2020, "norm_asv_counts_16S_phys_chem_2019_2020_Predictions.tsv"))
+phys_chem_cv_actual_2019 = read.delim(paste0(base_path_2019_2020, "norm_asv_counts_16S_phys_chem_2019_2020_Actual.tsv"))
+
+phyt_plan_genus_cv_predicitons_2019 = read.delim(paste0(base_path_2019_2020, "norm_asv_counts_18S_phyt_plan_genus_2019_2020_Predictions.tsv"))
+phyt_plan_genus_cv_actual_2019 = read.delim(paste0(base_path_2019_2020, "norm_asv_counts_18S_phyt_plan_genus_2019_2020_Actual.tsv"))
+
+zoo_plan_genus_cv_predicitons_2019 = read.delim(paste0(base_path_2019_2020, "norm_asv_counts_16S_zoo_plan_genus_2019_2020_Predictions.tsv"))
+zoo_plan_genus_cv_actual_2019 = read.delim(paste0(base_path_2019_2020, "norm_asv_counts_16S_zoo_plan_genus_2019_2020_Actual.tsv"))
+
+
+```
+
+
+
+```{r}
+phys_chem_path = '../env_data/combined/physical_chemical_wide_2015_2019_2024-01-17_utf8.txt'
+
+phys_chem = read.delim(phys_chem_path)
+
+
+phys_chem <- phys_chem %>%
+    mutate(institution = case_when(
+        grepl("SMHI", dataset_name) ~ "SMHI",
+        grepl("UMSC", dataset_name) ~ "UMU",
+        grepl("DEEP", dataset_name) ~ "SU",
+        TRUE ~ "Other"
+    ))
+
+smhi_stations = phys_chem %>%
+    filter(institution == "SMHI") %>%
+    pull(dataset_name)
+```
+
+
+Compare acrual phys_chem values
+
+```{r}
+predictions = list_of_prediction_dfs[[which(model_names == 'norm_asv_counts_16S_phys_chem_2015_2017')]]
+true_values = list_of_true_dfs[[which(model_names == 'norm_asv_counts_16S_phys_chem_2015_2017')]]
+
+list_of_parameters = rownames(predictions)
+
+identical(colnames(predictions), colnames(true_values))
+
+cor_values = c()
+
+for(parameter in list_of_parameters){
+    
+  
+  data = data.frame(predictions = unlist(true_values[parameter,]), true_values = unlist(predictions[parameter,]))
+  data = data[complete.cases(data),]
+  
+  correlation = cor(data$predictions, data$true_values)
+  
+  cor_values = c(cor_values, correlation)
+  names(cor_values)[length(cor_values)] = parameter
+}
+
+cor_values
+
+```
+Visualize the correlation
+
+```{r}
+par(mfcol = c(1,1), mar = c(2,10,2,20), xpd = T)
+barplot(cor_values, beside = T, horiz = T, las = 1, cex.names = 0.8,
+        ## Make it list all the names
+        names.arg = names(cor_values),
+        ##Make x-axis scale from 0 to 1
+        xlim = c(0,1)
+        )
+# barplot(t(cor_matr), beside = T, horiz = T, las = 1, legend = T, names.arg = sample_labels, cex.names = 0.8, args.legend = list(x = "bottom", inset = c(1,-0.25)))
+
+```
+
+Get the correlations for the 16S ASV based CV predictions
+
+```{r}
+cor_values_cv = c()
+
+identical(rownames(phys_chem_cv_predicitons), rownames(predictions))
+
+for(parameter in list_of_parameters){
+    
+  
+  data = data.frame(predictions = unlist(phys_chem_cv_actual[parameter,]), true_values = unlist(phys_chem_cv_predicitons[parameter,]))
+  data = data[complete.cases(data),]
+  
+  correlation = cor(data$predictions, data$true_values)
+  
+  cor_values_cv = c(cor_values_cv, correlation)
+  names(cor_values_cv)[length(cor_values_cv)] = parameter
+}
+
+```
+Get the correlations for the 16S ASV based CV predictions: 2019-2020 training and testing data
+
+```{r}
+cor_values_cv_2019 = c()
+
+identical(rownames(phys_chem_cv_predicitons_2019), rownames(predictions))
+
+for(parameter in list_of_parameters){
+    
+  
+  data = data.frame(predictions = unlist(phys_chem_cv_actual_2019[parameter,]), true_values = unlist(phys_chem_cv_predicitons_2019[parameter,]))
+  data = data[complete.cases(data),]
+  
+  correlation = cor(data$predictions, data$true_values)
+  
+  cor_values_cv_2019 = c(cor_values_cv_2019, correlation)
+  names(cor_values_cv_2019)[length(cor_values_cv_2019)] = parameter
+}
+
+```
+
+
+## Compare the values between the interannual and the cv prediction
+
+```{r}
+cor_df = data.frame(parameter = names(cor_values), cv = cor_values_cv, cv_2019 = cor_values_cv_2019, interannual = cor_values)
+
+ix = which(cor_df$parameter == 'Longitude')
+
+cor_df = cor_df[ix:nrow(cor_df),]
+
+cor_df = cor_df[complete.cases(cor_df),]
+
+pdf(paste0(plot_folder, "phys_chem_cv_interannual_comparison.pdf"))
+
+layout(matrix(c(1,2,1,3), 2, 2, byrow = T))
+
+par(mar = c(2,10,2,2), xpd = T)
+barplot(as.matrix(t(cor_df[,c(2,3,4)])), beside = T, horiz = T, las = 1, cex.names = 0.8,
+        ## Make it list all the names
+        names.arg = cor_df$parameter,
+        ##Make x-axis scale from 0 to 1
+        xlim = c(0,1),
+        ## Move legend
+         legend = T, args.legend = list(x = "topleft", inset = c(-1,0))
+        )
+par(mar = c(6,4,2,2))
+boxplot(cor_df$interannual, cor_df$cv_2019, cor_df$cv,  names = c('CV', 'CV 2019-2020', 'Interannual'), las = 2)
+par(mar = c(4,4,2,2))
+plot(cor_df$interannual, cor_df$cv_2019, xlab = 'Interannual', ylab = 'CV 2019-2020', main = 'Interannual vs CV 2019-2020 correlation',
+     ## Add an identity line
+     xlim = c(0,1), ylim = c(0,1))
+lines(c(0,1), c(0,1))
+dev.off()
+
+
+wilcox.test(cor_df$interannual, cor_df$cv, paired = T)
+median(cor_df$cv) - median(cor_df$interannual)
+
+wilcox.test(cor_df$interannual, cor_df$cv_2019, paired = T)
+median(cor_df$cv_2019) - median(cor_df$interannual)
+
+wilcox.test(cor_df$cv_2019, cor_df$cv, paired = T)
+median(cor_df$cv_2019) - median(cor_df$cv)
+
+```
+
+
+
