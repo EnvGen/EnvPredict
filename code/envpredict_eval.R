@@ -26,8 +26,11 @@ for (i in 1:length(prediction_files)) {
 sample_labels = paste(rownames(cor_matr), " [", num_samples, "]", sep = "") 
 par(mar = c(2,10,2,2))
 barplot(t(cor_matr), beside = T, horiz = T, las = 1, legend = T, names.arg = sample_labels, cex.names = 0.8, args.legend = list(x = "topright"))
+par(mar = c(5,5,1,1))
+barplot(colMeans(cor_matr_rf), las = 2, ylab = "mean cor")
 pheatmap(cor_matr, cluster_cols = F, cluster_rows = F, labels_row = sample_labels)
 cor_matr_rf = cor_matr
+
 
 
 # physchem predictions from different taxonomic levels  - TabPNF
@@ -96,9 +99,9 @@ par(mar = c(2,10,2,2))
 barplot(t(cor_matr), beside = T, horiz = T, las = 1, legend = T, names.arg = sample_labels, cex.names = 0.8, args.legend = list(x = "topright"))
 pheatmap(cor_matr, cluster_cols = F, cluster_rows = F, labels_row = sample_labels)
 
-
 # physchem predictions from either 16S-ASVs or plankton microscopy
 results_folder = "~/aquatic/envpredict/output/physchem_based_on_seqdata_or_phytoplan"
+#results_folder = "~/aquatic/envpredict/output/physchem_based_on_seqdata_or_zooplan"
 prediction_files = list.files(results_folder, pattern = "Predictions.tsv")
 observation_files = gsub("Predictions", "Actual", prediction_files)
 pred_matr = read.delim(paste(results_folder, prediction_files[1], sep = "/"), row.names = 1)
@@ -111,23 +114,30 @@ for (i in 1:length(prediction_files)) {
   pred_matr = as.matrix(read.delim(paste(results_folder, prediction_files[i], sep = "/"), row.names = 1))
   obs_matr = as.matrix(read.delim(paste(results_folder, observation_files[i], sep = "/"), row.names = 1))
   for (j in 1:nrow(pred_matr)) {
-    cor_matr[j,i] = round(cor.test(pred_matr[j,], obs_matr[j,])$est , 3)
+    cor_matr[j,i] = cor.test(pred_matr[j,], obs_matr[j,])$est
+    #cor_matr[j,i] = (cor_matr[j,i])^2 # r-squared
+    cor_matr[j,i] = round(cor_matr[j,i], 3)
     num_samples[j] = length(which(!is.na(obs_matr[j,])))
   }
 }
 cor_matr
+cor_matr = cor_matr[-c(1:7),]
+num_samples = num_samples[-c(1:7)]
 sample_labels = paste(rownames(cor_matr), " [", num_samples, "]", sep = "") 
-par(mfcol = c(1,1), mar = c(2,10,2,20), xpd = T)
-barplot(t(cor_matr), beside = T, horiz = T, las = 1, legend = T, names.arg = sample_labels, cex.names = 0.8, args.legend = list(x = "bottom", inset = c(1,-0.25)))
 pheatmap(cor_matr, cluster_cols = F, cluster_rows = F, labels_row = sample_labels)
-boxplot(cor_matr[,1], cor_matr[,2], cor_matr[,3],  names = colnames(cor_matr))
-par(mfcol = c(1,1), mar = c(4,4,2,2))
+
+layout(matrix(c(1,2,1,3), 2, 2, byrow = T)) 
+par(mar = c(2,10,2,2), xpd = T)
+barplot(t(cor_matr), beside = T, horiz = T, las = 1, legend = T, names.arg = sample_labels, cex.names = 0.8, args.legend = list(x = "top"))
+par(mar = c(6,4,2,2))
+boxplot(cor_matr[,1], cor_matr[,2], cor_matr[,3],  names = colnames(cor_matr), las = 2)
+par(mar = c(4,4,2,2))
 plot(cor_matr[,1], cor_matr[,3], xlim = c(0,1), ylim = c(0,1), xlab = colnames(cor_matr)[1], ylab = colnames(cor_matr)[3])
 lines(c(0,1), c(0,1))
 
 
 
-# plankton predictions from either 16S-ASVs (ML) 18S-ASVs (ML), 18S-seq-matching, or physiochem data
+# phytoplankton predictions from either 16S-ASVs (ML) 18S-ASVs (ML), 18S-seq-matching, or physchem data
 results_folder = "~/aquatic/envpredict/output/phytoplankton_predicted"
 prediction_files = list.files(results_folder, pattern = "Predictions.tsv")
 prediction_files = prediction_files[c(grep("phyt_plan_genus", prediction_files))] # grep("direct_matching_", prediction_files))]
@@ -141,11 +151,72 @@ for (i in 1:length(prediction_files)) {
 cor_matr = matrix(nrow = length(shared_genus), ncol = length(prediction_files))
 colnames(cor_matr) = gsub("_Predictions.tsv","", prediction_files)
 colnames(cor_matr) = gsub("phyt_plan_genus_","", colnames(cor_matr))
-colnames(cor_matr) = gsub("renomralized_direct_matching_norm_asv_counts_18S","rn_direct_matching_18S", colnames(cor_matr))
-colnames(cor_matr) = gsub("direct_matching_norm_asv_counts_18S","direct_matching_18S", colnames(cor_matr))
+colnames(cor_matr) = gsub("direct_matching_norm_clade_counts_18S_8_phyt_plan_genus","matching_18S", colnames(cor_matr))
 colnames(cor_matr) = gsub("norm_asv_counts_","ML_", colnames(cor_matr))
-colnames(cor_matr) = gsub("_complete","", colnames(cor_matr))
+colnames(cor_matr) = gsub("_RF10fold","", colnames(cor_matr))
+colnames(cor_matr) = gsub("renomralized_matching_18","renorm_matching_18", colnames(cor_matr))
 rownames(cor_matr) = shared_genus
+length(shared_genus)
+num_samples = c()
+for (i in 1:length(prediction_files)) {
+  pred_matr = as.matrix(read.delim(paste(results_folder, prediction_files[i], sep = "/"), row.names = 1))[shared_genus,]
+  obs_matr = as.matrix(read.delim(paste(results_folder, observation_files[i], sep = "/"), row.names = 1))[shared_genus,]
+  for (j in 1:nrow(pred_matr)) {
+    num_samples[j] = NA 
+    if (length(unique(obs_matr[j,])) > 0) { # if not all observations are the same
+      cor_matr[j,i] = round(cor.test(pred_matr[j,], obs_matr[j,])$est , 3)
+      #num_samples[j] = length(which(!is.na(obs_matr[j,])))
+      num_samples[j] = length(which(obs_matr[j,] != 0))
+    }
+  }
+}
+ix = which(rowSums(is.na(cor_matr)) == 0)
+cor_matr = cor_matr[ix,]
+num_samples = num_samples[ix]
+sample_labels = paste(rownames(cor_matr), " [", num_samples, "]", sep = "") 
+par(mar = c(2,10,2,2))
+barplot(t(cor_matr), beside = T, horiz = T, las = 1, legend = T, names.arg = sample_labels, cex.names = 0.8, args.legend = list(x = "topright"))
+pheatmap(cor_matr, cluster_cols = F, cluster_rows = F, labels_row = sample_labels)
+# plotting cor vs number of micr samples where genus was observed
+layout(matrix(c(1,2,5,3,4,6), 2, 3, byrow = T))
+ix2 = c(4,2,3,1)
+par(mar = c(4,4,1,1))
+for (i in 1:length(ix2)) {
+  plot(num_samples, cor_matr[,ix2[i]], main = colnames(cor_matr)[ix2[i]], xlab = "Detected in num samples", ylab = "Pearson cor (R)")
+}
+ix = which(num_samples > 50)
+par(mar = c(6,4,1,1))
+boxplot(
+  cor_matr[ix,ix2[1]], cor_matr[ix,ix2[2]], cor_matr[ix,ix2[3]], cor_matr[ix,ix2[4]], 
+  names = colnames(cor_matr)[ix2], las = 3, ylab = "Pearson cor (R)"
+)
+par(mar = c(4,4,1,1))
+plot(cor_matr[ix,ix2[4]], cor_matr[ix,ix2[3]], xlim = c(0,1), ylim = c(0,1), xlab = colnames(cor_matr)[ix2[4]], ylab = colnames(cor_matr)[ix2[3]])
+lines(c(0,1), c(0,1))
+
+
+
+
+# zooplankton predictions from either 16S-ASVs (ML) 18S-ASVs (ML), 18S-seq-matching, or physiochem data
+results_folder = "~/aquatic/envpredict/output/zooplankton_predicted"
+prediction_files = list.files(results_folder, pattern = "Predictions.tsv")
+prediction_files = prediction_files[c(grep("zoo_plan_genus", prediction_files))] # grep("direct_matching_", prediction_files))]
+observation_files = gsub("Predictions", "Actual", prediction_files)
+pred_matr = read.delim(paste(results_folder, prediction_files[1], sep = "/"), row.names = 1)
+shared_genus = rownames(pred_matr)
+for (i in 1:length(prediction_files)) {
+  pred_matr = as.matrix(read.delim(paste(results_folder, prediction_files[i], sep = "/"), row.names = 1))
+  shared_genus = intersect(shared_genus, rownames(pred_matr))
+}
+cor_matr = matrix(nrow = length(shared_genus), ncol = length(prediction_files))
+colnames(cor_matr) = gsub("_Predictions.tsv","", prediction_files)
+colnames(cor_matr) = gsub("zoo_plan_genus_","", colnames(cor_matr))
+colnames(cor_matr) = gsub("direct_matching_norm_clade_counts_18S_8_zoo_plan_genus","matching_18S", colnames(cor_matr))
+colnames(cor_matr) = gsub("norm_asv_counts_","ML_", colnames(cor_matr))
+colnames(cor_matr) = gsub("_RF10fold","", colnames(cor_matr))
+colnames(cor_matr) = gsub("renomralized_matching_18","renorm_matching_18", colnames(cor_matr))
+rownames(cor_matr) = shared_genus
+length(shared_genus)
 num_samples = c()
 for (i in 1:length(prediction_files)) {
   pred_matr = as.matrix(read.delim(paste(results_folder, prediction_files[i], sep = "/"), row.names = 1))[shared_genus,]
@@ -168,64 +239,103 @@ par(mfrow = c(1,1), mar = c(2,10,2,2))
 barplot(t(cor_matr), beside = T, horiz = T, las = 1, legend = T, names.arg = sample_labels, cex.names = 0.8, args.legend = list(x = "topright"))
 pheatmap(cor_matr, cluster_cols = F, cluster_rows = F, labels_row = sample_labels)
 # plotting cor vs number of micr samples where genus was observed
-par(mfrow = c(3,2), mar = c(4,4,1,1))
-for (i in 1:length(prediction_files)) {
-  plot(num_samples, cor_matr[,i], main = colnames(cor_matr)[i])
+layout(matrix(c(1,2,5,3,4,6), 2, 3, byrow = T))
+ix2 = c(4,2,3,1)
+par(mar = c(4,4,1,1))
+for (i in 1:length(ix2)) {
+  plot(num_samples, cor_matr[,ix2[i]], main = colnames(cor_matr)[ix2[i]], xlab = "Detected in num samples", ylab = "Pearson cor (R)")
+}
+ix = which(num_samples > 50)
+par(mar = c(6,4,1,1))
+boxplot(
+  cor_matr[ix,ix2[1]], cor_matr[ix,ix2[2]], cor_matr[ix,ix2[3]], cor_matr[ix,ix2[4]], 
+  names = colnames(cor_matr)[ix2], las = 3, ylab = "Pearson cor (R)"
+)
+par(mar = c(4,4,1,1))
+plot(cor_matr[ix,ix2[4]], cor_matr[ix,ix2[3]], xlim = c(0,1), ylim = c(0,1), xlab = colnames(cor_matr)[ix2[4]], ylab = colnames(cor_matr)[ix2[3]])
+lines(c(0,1), c(0,1))
+
+
+
+
+
+par(mfrow = c(2,2), mar = c(4,4,1,1))
+for (i in 1:length(ix2)) {
+  plot(num_samples, cor_matr[,ix2[i]], main = colnames(cor_matr)[ix2[i]], xlab = "Detected in num samples", ylab = "Pearson cor (R)")
 }
 # boxplots of cor per method, including genera observed in at least of 50 samples
 ix = which(num_samples > 50)
-ix2 = c(4,2,3,1,5)
+ix2 = c(4,2,3,1)
 par(mfrow = c(1,1), mar = c(10,4,1,1))
 boxplot(
-  cor_matr[ix,ix2[1]], cor_matr[ix,ix2[2]], cor_matr[ix,ix2[3]], cor_matr[ix,ix2[4]], cor_matr[ix,ix2[5]], 
+  cor_matr[ix,ix2[1]], cor_matr[ix,ix2[2]], cor_matr[ix,ix2[3]], cor_matr[ix,ix2[4]], 
   names = colnames(cor_matr)[ix2], las = 3, ylab = "Pearson cor (R)"
 )
 wilcox.test(cor_matr[,"phys_chem"], cor_matr[,"ML_16S"], paired = T)
 wilcox.test(cor_matr[,"phys_chem"], cor_matr[,"ML_18S"], paired = T)
-plot(cor_matr[ix,ix2[1]], cor_matr[ix,ix2[3]])
-lines(c(0.3,1), c(0.3,1))
+plot(cor_matr[ix,ix2[1]], cor_matr[ix,ix2[3]], xlim = c(0,1), ylim = c(0,1), xlab = colnames(cor_matr)[ix2[1]], ylab = colnames(cor_matr)[ix2[3]])
+lines(c(0,1), c(0,1))
+plot(cor_matr[ix,ix2[4]], cor_matr[ix,ix2[3]], xlim = c(0,1), ylim = c(0,1), xlab = colnames(cor_matr)[ix2[4]], ylab = colnames(cor_matr)[ix2[3]])
+lines(c(0,1), c(0,1))
+plot(cor_matr[ix,ix2[2]], cor_matr[ix,ix2[3]], xlim = c(0,1), ylim = c(0,1), xlab = colnames(cor_matr)[ix2[2]], ylab = colnames(cor_matr)[ix2[3]])
+lines(c(0,1), c(0,1))
 
 
-
-
-
-
-
-prediction_files = list.files(folder, pattern = "Predictions.tsv")
+## phytoplankton-genus and 18S-genus predictions based on physchem data
+results_folder = "~/aquatic/envpredict/output/phytoplankton_genus_micr_and_18S_based_on_physchem"
+prediction_files = list.files(results_folder, pattern = "Predictions.tsv")
 observation_files = gsub("Predictions", "Actual", prediction_files)
-pred_matr = read.delim(paste(folder, prediction_files[1], sep = "/"), row.names = 1)
-cor_matr = matrix(nrow = nrow(pred_matr), ncol = length(prediction_files))
-colnames(cor_matr) = gsub("_Predictions.tsv","", prediction_files)
-colnames(cor_matr) = gsub("_RF10fold","", colnames(cor_matr))
-colnames(cor_matr) = gsub("norm_clade_counts_","", colnames(cor_matr))
-colnames(cor_matr) = gsub("norm_seqtab_","", colnames(cor_matr))
-colnames(cor_matr) = gsub(".tsv","", colnames(cor_matr))
-rownames(cor_matr) = rownames(pred_matr)
+pred_matr = read.delim(paste(results_folder, prediction_files[1], sep = "/"), row.names = 1)
+shared_genus = rownames(pred_matr)
 for (i in 1:length(prediction_files)) {
-  pred_matr = as.matrix(read.delim(paste(folder, prediction_files[i], sep = "/"), row.names = 1))
-  obs_matr = as.matrix(read.delim(paste(folder, observation_files[i], sep = "/"), row.names = 1))
+  pred_matr = as.matrix(read.delim(paste(results_folder, prediction_files[i], sep = "/"), row.names = 1))
+  shared_genus = intersect(shared_genus, rownames(pred_matr))
+}
+length(shared_genus) # 153
+cor_matr = matrix(nrow = length(shared_genus), ncol = 2*length(prediction_files))
+colnames(cor_matr) = c(paste(prediction_files[1], "cor"), paste(prediction_files[1], "non-zero"), paste(prediction_files[2], "cor"), paste(prediction_files[2], "non-zero"))
+colnames(cor_matr) = gsub("_Predictions.tsv","", colnames(cor_matr))
+colnames(cor_matr) = gsub("physchem-based_","", colnames(cor_matr))
+rownames(cor_matr) = shared_genus
+
+for (i in 1:length(prediction_files)) {
+  pred_matr = as.matrix(read.delim(paste(results_folder, prediction_files[i], sep = "/"), row.names = 1))[shared_genus,]
+  obs_matr = as.matrix(read.delim(paste(results_folder, observation_files[i], sep = "/"), row.names = 1))[shared_genus,]
   for (j in 1:nrow(pred_matr)) {
-    cor_matr[j,i] = round(cor.test(pred_matr[j,], obs_matr[j,])$est , 3)
+    if (length(unique(obs_matr[j,])) > 0) { # if not all observations are the same
+      #cor_matr[j,(2*i) - 1] = round(cor.test(pred_matr[j,], obs_matr[j,])$est , 3)
+      cor_matr[j,(2*i) - 1] = round(cor.test(pred_matr[j,], obs_matr[j,], method = "spearman")$est , 3)
+      #cor_matr[j,2*i] = length(which(!is.na(obs_matr[j,])))
+      cor_matr[j,2*i] = length(which(obs_matr[j,] != 0))
+    }
   }
 }
-cor_matr
-cor_matr_taxa = cor_matr
+ix = which(rowSums(is.na(cor_matr)) == 0)
+cor_matr = cor_matr[ix,]
+
+par(mfcol = c(1,1), mar = c(4,4,1,1))
+plot(cor_matr[,2], cor_matr[,1], xlab = "Detected in number samples", ylab = "Cor")
+points(cor_matr[,4], cor_matr[,3], col = "blue")
+
+ix = intersect(which(cor_matr[,2] > 10), which(cor_matr[,4] > 10))
+plot(cor_matr[ix,1], cor_matr[ix,3], xlab = "18S", ylab = "Micr", xlim = c(0,1), ylim = c(0,1))
+lines(c(0,1), c(0,1))
+ix = intersect(which(cor_matr[,2] > 50), which(cor_matr[,4] > 50))
+plot(cor_matr[ix,1], cor_matr[ix,3], xlab = "18S", ylab = "Micr", xlim = c(0,1), ylim = c(0,1))
+lines(c(0,1), c(0,1))
 
 
-barplot(colMeans(cor_matr_deep), ylim = c(0,1), las = 3)
-sort(colMeans(cor_matr_deep), decreasing = T)[1:10]
+pred_matr_18S = as.matrix(read.delim(paste(results_folder, prediction_files[1], sep = "/"), row.names = 1))[shared_genus,]
+obs_matr_18S = as.matrix(read.delim(paste(results_folder, observation_files[1], sep = "/"), row.names = 1))[shared_genus,]
+pred_matr_mic = as.matrix(read.delim(paste(results_folder, prediction_files[2], sep = "/"), row.names = 1))[shared_genus,]
+obs_matr_mic = as.matrix(read.delim(paste(results_folder, observation_files[2], sep = "/"), row.names = 1))[shared_genus,]
 
-barplot(colMeans(cor_matr_taxa), ylim = c(0,1), las = 3)
-sort(colMeans(cor_matr_taxa), decreasing = T)[1:10]
 
+plot(pred_matr_18S["Alexandrium",], obs_matr_18S["Alexandrium",])
+plot(pred_matr_mic["Alexandrium",], obs_matr_mic["Alexandrium",])
 
-ix_16S = grep("16S", colnames(cor_matr))
-ix_18S = grep("18S", colnames(cor_matr))
-
-barplot(colMeans(cor_matr)[ix_16S], ylim = c(0,1))
-barplot(colMeans(cor_matr)[ix_18S], ylim = c(0,1))
-
-barplot(colMeans(cor_matr)[ix_16S], ylim = c(0,1))
+cor.test(pred_matr_18S["Alexandrium",], obs_matr_18S["Alexandrium",])
+cor.test(pred_matr_mic["Alexandrium",], obs_matr_mic["Alexandrium",])
 
 
 
