@@ -625,20 +625,25 @@ responses_matrix = phyt_plan_genus[,cols_to_keep]
 
 c(nrow(features_matrix), nrow(responses_matrix), length(intersect(rownames(features_matrix), rownames(responses_matrix))))
 
-shared_genus = sort(intersect(rownames(features_matrix), rownames(responses_matrix)))
+shared_genera = sort(intersect(rownames(features_matrix), rownames(responses_matrix)))
 
-features_matrix = features_matrix[shared_genus,]
+predicted_matrix = features_matrix[shared_genera,]
+responses_matrix = responses_matrix[shared_genera,]
+
 write.table(responses_matrix, paste(output_files_path, 'direct_matching_norm_clade_counts_18S_8_phyt_plan_genus_Actual.tsv', sep = "/"), sep="\t")
-write.table(features_matrix, paste(output_files_path, 'direct_matching_norm_clade_counts_18S_8_phyt_plan_genus_Predictions.tsv', sep = "/"), sep="\t")
+write.table(predicted_matrix, paste(output_files_path, 'direct_matching_norm_clade_counts_18S_8_phyt_plan_genus_Predictions.tsv', sep = "/"), sep="\t")
 
+features_matrix = features_matrix[shared_genera,]
 renorm_matching_abundance = features_matrix
 
 for(k in 1:ncol(renorm_matching_abundance)){
   renorm_matching_abundance[,k] = renorm_matching_abundance[,k]/sum(renorm_matching_abundance[,k])
 }
 
+predicted_matrix = renorm_matching_abundance
+
 write.table(responses_matrix, paste(output_files_path, 'renomralized_direct_matching_norm_clade_counts_18S_8_phyt_plan_genus_Actual.tsv', sep = "/"), sep="\t")
-write.table(renorm_matching_abundance, paste(output_files_path, 'renomralized_direct_matching_norm_clade_counts_18S_8_phyt_plan_genus_Predictions.tsv', sep = "/"), sep="\t")
+write.table(predicted_matrix, paste(output_files_path, 'renomralized_direct_matching_norm_clade_counts_18S_8_phyt_plan_genus_Predictions.tsv', sep = "/"), sep="\t")
 
 ## Running zooplankton predictions (genera only?) based on seq data and physchem data, using the same set of samples
 
@@ -731,20 +736,25 @@ responses_matrix = zoo_plan_genus[,cols_to_keep]
 
 c(nrow(features_matrix), nrow(responses_matrix), length(intersect(rownames(features_matrix), rownames(responses_matrix))))
 
-shared_genus = sort(intersect(rownames(features_matrix), rownames(responses_matrix)))
+shared_genera = sort(intersect(rownames(features_matrix), rownames(responses_matrix)))
 
-features_matrix = features_matrix[shared_genus,]
+predicted_matrix = features_matrix[shared_genera,]
+responses_matrix = responses_matrix[shared_genera,]
+
 write.table(responses_matrix, paste(output_files_path, 'direct_matching_norm_clade_counts_18S_8_zoo_plan_genus_Actual.tsv', sep = "/"), sep="\t")
-write.table(features_matrix, paste(output_files_path, 'direct_matching_norm_clade_counts_18S_8_zoo_plan_genus_Predictions.tsv', sep = "/"), sep="\t")
+write.table(predicted_matrix, paste(output_files_path, 'direct_matching_norm_clade_counts_18S_8_zoo_plan_genus_Predictions.tsv', sep = "/"), sep="\t")
 
+features_matrix = features_matrix[shared_genera,]
 renorm_matching_abundance = features_matrix
 
 for(k in 1:ncol(renorm_matching_abundance)){
   renorm_matching_abundance[,k] = renorm_matching_abundance[,k]/sum(renorm_matching_abundance[,k])
 }
 
+predicted_matrix = renorm_matching_abundance
+
 write.table(responses_matrix, paste(output_files_path, 'renomralized_direct_matching_norm_clade_counts_18S_8_zoo_plan_genus_18S_Actual.tsv', sep = "/"), sep="\t")
-write.table(renorm_matching_abundance, paste(output_files_path, 'renomralized_direct_matching_norm_clade_counts_18S_8_zoo_plan_genus_18S_Predictions.tsv', sep = "/"), sep="\t")
+write.table(predicted_matrix, paste(output_files_path, 'renomralized_direct_matching_norm_clade_counts_18S_8_zoo_plan_genus_18S_Predictions.tsv', sep = "/"), sep="\t")
 
 ## Build predictors based on 2019-2020 dataset and predict 2015-2017
 
@@ -877,13 +887,13 @@ responses_matrix = responses_matrix[which(rowSums(responses_matrix, na.rm = T) >
 
 c(nrow(features_matrix), nrow(responses_matrix), length(intersect(rownames(features_matrix), rownames(responses_matrix))))
 
-shared_genus = sort(intersect(rownames(features_matrix), rownames(responses_matrix)))
-cor_matr_seq_match = matrix(ncol = 3, nrow = length(shared_genus))
+shared_genera = sort(intersect(rownames(features_matrix), rownames(responses_matrix)))
+cor_matr_seq_match = matrix(ncol = 3, nrow = length(shared_genera))
 colnames(cor_matr_seq_match) = c("pos_samp_micr","pos_samp_barc","cor-R")
-rownames(cor_matr_seq_match) = shared_genus
-for (i in 1:length(shared_genus)) {
-  ixf = match(shared_genus[i], rownames(features_matrix))
-  ixr = match(shared_genus[i], rownames(responses_matrix))
+rownames(cor_matr_seq_match) = shared_genera
+for (i in 1:length(shared_genera)) {
+  ixf = match(shared_genera[i], rownames(features_matrix))
+  ixr = match(shared_genera[i], rownames(responses_matrix))
   cor_matr_seq_match[i,1] = length(which(responses_matrix[ixr,] > 0))
   cor_matr_seq_match[i,2] = length(which(features_matrix[ixf,] > 0))
   cor_matr_seq_match[i,3] = cor.test(responses_matrix[ixr,], features_matrix[ixf,])$est
@@ -894,7 +904,7 @@ plot(cor_matr_seq_match[,1], cor_matr_seq_match[,3], xlab = "Presence in #Mic sa
 plot(cor_matr_seq_match[,1]*cor_matr_seq_match[,2], cor_matr_seq_match[,3], xlab = "Presence in #Mic samples", ylab = "Prediction R-value", ylim = c(0,1))
 
 ix1 = intersect(which(cor_matr_seq_match[,1] >= 10), which(cor_matr_seq_match[,2] >= 10))
-ix2 = match(shared_genus[ix1], rownames(cor_matr))
+ix2 = match(shared_genera[ix1], rownames(cor_matr))
 plot(cor_matr_seq_match[ix1,3], cor_matr[ix2,4], xlim = c(0,1), ylim = c(0,1), xlab = c("Directly from sequence annotation"), ylab = c("From machine-learning"), main = "Correlation coefficient per genus")
 lines(c(0,1),c(0,1))
 
