@@ -27,7 +27,7 @@ sample_labels = paste(rownames(cor_matr), " [", num_samples, "]", sep = "")
 par(mar = c(2,10,2,2))
 barplot(t(cor_matr), beside = T, horiz = T, las = 1, legend = T, names.arg = sample_labels, cex.names = 0.8, args.legend = list(x = "topright"))
 par(mar = c(5,5,1,1))
-barplot(colMeans(cor_matr_rf), las = 2, ylab = "mean cor")
+barplot(colMeans(cor_matr), las = 2, ylab = "mean cor")
 pheatmap(cor_matr, cluster_cols = F, cluster_rows = F, labels_row = sample_labels)
 cor_matr_rf = cor_matr
 
@@ -59,9 +59,10 @@ for (i in 1:length(prediction_files)) {
 sample_labels = paste(rownames(cor_matr), " [", num_samples, "]", sep = "") 
 par(mar = c(2,10,2,2))
 barplot(t(cor_matr), beside = T, horiz = T, las = 1, legend = T, names.arg = sample_labels, cex.names = 0.8, args.legend = list(x = "topright"))
+par(mar = c(5,5,1,1))
+barplot(colMeans(cor_matr), las = 2, ylab = "mean cor")
 pheatmap(cor_matr, cluster_cols = F, cluster_rows = F, labels_row = sample_labels)
 cor_matr_tpnf = cor_matr
-
 
 # plotting results from RF vs TablePNF
 par(mfrow=c(2,2), mar = c(4,4,1,1))
@@ -72,9 +73,9 @@ wilcox.test(cor_matr_rf, cor_matr_tpnf, paired = T)
 plot(cor_matr_rf, cor_matr_tpnf, xlim = c(0.9, 1), ylim = c(0.9, 1))
 lines(c(0.8,1), c(0.8,1))
 
-
 # physchem predictions from RepresentationsFromDeepMicro
 results_folder = "~/aquatic/envpredict/output/RepresentationsFromDeepMicro"
+#results_folder = "~/aquatic/envpredict/output/RepresentationsFromDeepMicro_prefilt_features"
 prediction_files = list.files(results_folder, pattern = "Predictions.tsv")
 observation_files = gsub("Predictions", "Actual", prediction_files)
 pred_matr = read.delim(paste(results_folder, prediction_files[1], sep = "/"), row.names = 1)
@@ -84,6 +85,9 @@ colnames(cor_matr) = gsub("_Predictions.tsv","", prediction_files)
 colnames(cor_matr) = gsub("_RF10fold","", colnames(cor_matr))
 colnames(cor_matr) = gsub("norm_clade_counts_","", colnames(cor_matr))
 colnames(cor_matr) = gsub("norm_seqtab_","", colnames(cor_matr))
+colnames(cor_matr) = gsub("_filtered","", colnames(cor_matr))
+colnames(cor_matr) = gsub("_filt","", colnames(cor_matr))
+colnames(cor_matr) = gsub("_pivoted_march_2025_rep","", colnames(cor_matr))
 colnames(cor_matr) = gsub(".tsv","", colnames(cor_matr))
 rownames(cor_matr) = rownames(pred_matr)
 for (i in 1:length(prediction_files)) {
@@ -97,7 +101,12 @@ for (i in 1:length(prediction_files)) {
 sample_labels = paste(rownames(cor_matr), " [", num_samples, "]", sep = "") 
 par(mar = c(2,10,2,2))
 barplot(t(cor_matr), beside = T, horiz = T, las = 1, legend = T, names.arg = sample_labels, cex.names = 0.8, args.legend = list(x = "topright"))
+par(mar = c(5,5,1,1))
+barplot(colMeans(cor_matr), las = 2, ylab = "mean cor")
 pheatmap(cor_matr, cluster_cols = F, cluster_rows = F, labels_row = sample_labels)
+cor_matr_de = cor_matr
+#cor_matr_depf = cor_matr
+
 
 # physchem predictions from either 16S-ASVs or plankton microscopy
 results_folder = "~/aquatic/envpredict/output/physchem_based_on_seqdata_or_phytoplan"
