@@ -419,6 +419,15 @@ cor_ob = get_correlations_predictions(responses_matrix, predicted_responses_matr
 cor_10f = get_correlations_predictions(responses_matrix, predicted_responses_matrix_rf_10f)
 cor_xgb = get_correlations_predictions(responses_matrix, predicted_responses_matrix_xgb)
 
+par(mfrow = c(2,2), mar = c(4,4,1,1))
+plot(cor_ob[,3], cor_xgb[,3], xlim = c(0,1), ylim = c(0,1))
+lines(c(0,1), c(0,1))
+plot(cor_10f[,3], cor_xgb[,3], xlim = c(0,1), ylim = c(0,1))
+lines(c(0,1), c(0,1))
+plot(cor_10f[,3], cor_ob[,3], xlim = c(0,1), ylim = c(0,1))
+lines(c(0,1), c(0,1))
+
+
 ## for using plankton as features and physchem as responses
 #features_matrix_full = zoo_plan_genus
 features_matrix_full = phyt_plan_genus
@@ -458,12 +467,13 @@ predicted_responses_matrix_rf_ob = run_randomforest_out_of_bag(features_matrix, 
 ### Running predictions to be used in paper ###
 
 ## Running physiochem predictions on deep feature representation files
-output_files_path = "../output/RepresentationsFromDeepMicro"
+output_files_path = "../output/RepresentationsFromDeepMicro_prefilt_features"
 if (!dir.exists(output_files_path)) { dir.create(output_files_path) }
-features_files_path = "../seq_data/combined/RepresentationsFromDeepMicro"
+features_files_path = "../seq_data/combined/RepresentationsFromDeepMicro_prefilt_features"
 list.files(features_files_path)
 infiles = sort(list.files(features_files_path))
-for (i in 1:length(infiles)) {
+#for (i in 1:length(infiles)) {
+for (i in 19:length(infiles)) {
   outfile_actual = paste(gsub(".csv$","",infiles[i]),"RF10fold_Actual.tsv",sep ="_")
   outfile_predicted = paste(gsub(".csv$","",infiles[i]),"RF10fold_Predictions.tsv",sep ="_")
   responses_matrix_full = phys_chem
