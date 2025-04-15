@@ -260,7 +260,8 @@ run_randomforest <- function(features_matrix, responses_matrix, numfolds, min_sa
   return(predicted_responses_matrix)
 }
 
-run_randomforest_wo_crossvalidation <- function(features_matrix_train, responses_matrix_train, features_matrix_target, min_samples = 10) {
+## come here 1
+predict_randomforest <- function(features_matrix_train, responses_matrix_train, features_matrix_target, min_samples = 10) {
   if (!identical(rownames(features_matrix_train), rownames(features_matrix_target))) {
     stop("Rownames of the feature matrices (i.e., ASVs/taxa) do not match!")
   }
@@ -278,6 +279,7 @@ run_randomforest_wo_crossvalidation <- function(features_matrix_train, responses
   }
   return(predicted_responses_matrix)
 }
+
 
 run_gbm <- function(features_matrix, responses_matrix, numfolds, min_samples) {
   min_samples_in_fold = 1
@@ -329,15 +331,15 @@ run_xgboost_caret <- function(features_matrix, responses_matrix, numfolds_outer,
           y = response[trainingIndex],
           trControl = train_control,
           #tuneGrid = grid_default,
-          method = "xgbTree",
-          #method = "ranger",
+          #method = "xgbTree",
+          method = "ranger",
           modelType = "regression",
           verbose = TRUE
         )
         predicted_responses_matrix[i,testingIndex] = predict(xgb, df[testingIndex,])
       }
-      write.table(responses_matrix, paste(output_files_path, outfile_actual, sep = "/"), sep="\t")
-      write.table(predicted_responses_matrix, paste(output_files_path, outfile_predicted, sep = "/"), sep="\t")
+      #write.table(responses_matrix, paste(output_files_path, outfile_actual, sep = "/"), sep="\t")
+      #write.table(predicted_responses_matrix, paste(output_files_path, outfile_predicted, sep = "/"), sep="\t")
     }
   }
   return(predicted_responses_matrix)
@@ -419,15 +421,6 @@ cor_ob = get_correlations_predictions(responses_matrix, predicted_responses_matr
 cor_10f = get_correlations_predictions(responses_matrix, predicted_responses_matrix_rf_10f)
 cor_xgb = get_correlations_predictions(responses_matrix, predicted_responses_matrix_xgb)
 
-par(mfrow = c(2,2), mar = c(4,4,1,1))
-plot(cor_ob[,3], cor_xgb[,3], xlim = c(0,1), ylim = c(0,1))
-lines(c(0,1), c(0,1))
-plot(cor_10f[,3], cor_xgb[,3], xlim = c(0,1), ylim = c(0,1))
-lines(c(0,1), c(0,1))
-plot(cor_10f[,3], cor_ob[,3], xlim = c(0,1), ylim = c(0,1))
-lines(c(0,1), c(0,1))
-
-
 ## for using plankton as features and physchem as responses
 #features_matrix_full = zoo_plan_genus
 features_matrix_full = phyt_plan_genus
@@ -467,13 +460,12 @@ predicted_responses_matrix_rf_ob = run_randomforest_out_of_bag(features_matrix, 
 ### Running predictions to be used in paper ###
 
 ## Running physiochem predictions on deep feature representation files
-output_files_path = "../output/RepresentationsFromDeepMicro_prefilt_features"
+output_files_path = "../output/RepresentationsFromDeepMicro"
 if (!dir.exists(output_files_path)) { dir.create(output_files_path) }
-features_files_path = "../seq_data/combined/RepresentationsFromDeepMicro_prefilt_features"
+features_files_path = "../seq_data/combined/RepresentationsFromDeepMicro"
 list.files(features_files_path)
 infiles = sort(list.files(features_files_path))
-#for (i in 1:length(infiles)) {
-for (i in 19:length(infiles)) {
+for (i in 1:length(infiles)) {
   outfile_actual = paste(gsub(".csv$","",infiles[i]),"RF10fold_Actual.tsv",sep ="_")
   outfile_predicted = paste(gsub(".csv$","",infiles[i]),"RF10fold_Predictions.tsv",sep ="_")
   responses_matrix_full = phys_chem
@@ -857,6 +849,8 @@ predicted_matrix = renorm_matching_abundance
 write.table(responses_matrix, paste(output_files_path, 'renomralized_direct_matching_norm_clade_counts_18S_8_zoo_plan_genus_18S_Actual.tsv', sep = "/"), sep="\t")
 write.table(predicted_matrix, paste(output_files_path, 'renomralized_direct_matching_norm_clade_counts_18S_8_zoo_plan_genus_18S_Predictions.tsv', sep = "/"), sep="\t")
 
+### Interannual
+
 ## Build predictors based on 2019-2020 dataset and predict 2015-2017
 
 output_files_path = "../output/predict_2015_2017/"
@@ -880,10 +874,14 @@ features_matrix_target = features_matrix_target[rownames(features_matrix_train),
 
 identical(colnames(features_matrix_train),colnames(responses_matrix_train))
 
-predicted_responses = (features_matrix_train, responses_matrix_train, features_matrix_target)
+predicted_responses = predict_randomforest(features_matrix_train, responses_matrix_train, features_matrix_target)
 
 write.table(responses_matrix_target, paste(output_files_path, 'norm_asv_counts_16S_phys_chem_2015_2017_Actual.tsv', sep = "/"), sep="\t")
 write.table(predicted_responses, paste(output_files_path, 'norm_asv_counts_16S_phys_chem_2015_2017_Predictions.tsv', sep = "/"), sep="\t")
+
+## Predict 2015-2017 with cross-validation based on 2015-2017 dataset
+
+
 
 ## phyt_plan_genus_prediction based on 18S
 
@@ -908,7 +906,7 @@ identical(colnames(features_matrix_target),colnames(responses_matrix_target))
 features_matrix_train = do_feature_selection(features_matrix_train, 0.1)
 features_matrix_target = features_matrix_target[rownames(features_matrix_train),]
 
-predicted_responses = run_randomforest_wo_crossvalidation(features_matrix_train, responses_matrix_train, features_matrix_target)
+predicted_responses = predict_randomforest(features_matrix_train, responses_matrix_train, features_matrix_target)
 
 write.table(responses_matrix_target, paste(output_files_path, 'norm_asv_counts_18S_phyt_plan_genus_2015_2017_Actual.tsv', sep = "/"), sep="\t")
 write.table(predicted_responses, paste(output_files_path, 'norm_asv_counts_18S_phyt_plan_genus_2015_2017_Predictions.tsv', sep = "/"), sep="\t")
@@ -936,7 +934,7 @@ identical(colnames(features_matrix_target),colnames(responses_matrix_target))
 features_matrix_train = do_feature_selection(features_matrix_train, 0.1)
 features_matrix_target = features_matrix_target[rownames(features_matrix_train),]
 
-predicted_responses = run_randomforest_wo_crossvalidation(features_matrix_train, responses_matrix_train, features_matrix_target)
+predicted_responses = predict_randomforest(features_matrix_train, responses_matrix_train, features_matrix_target)
 
 write.table(responses_matrix_target, paste(output_files_path, 'norm_asv_counts_16S_zoo_plan_genus_2015_2017_Actual.tsv', sep = "/"), sep="\t")
 write.table(predicted_responses, paste(output_files_path, 'norm_asv_counts_16S_zoo_plan_genus_2015_2017_Predictions.tsv', sep = "/"), sep="\t")
