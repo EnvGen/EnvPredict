@@ -297,6 +297,9 @@ boxplot(
 par(mar = c(4,4,1,1))
 plot(cor_matr[ix,ix2[4]], cor_matr[ix,ix2[3]], xlim = c(0,1), ylim = c(0,1), xlab = colnames(cor_matr)[ix2[4]], ylab = colnames(cor_matr)[ix2[3]])
 lines(c(0,1), c(0,1))
+wilcox.test(cor_matr[ix,'phys_chem'], cor_matr[ix,'ML_16S'], paired = T)
+wilcox.test(cor_matr[ix,'phys_chem'], cor_matr[ix,'ML_18S'], paired = T)
+wilcox.test(cor_matr[ix,'match_18S'], cor_matr[ix,'ML_18S'], paired = T)
 
 num_samples = num_samples_zooplan
 cor_matr = cor_matr_zooplan
@@ -312,6 +315,10 @@ boxplot(
 par(mar = c(4,4,1,1))
 plot(cor_matr[ix,ix2[4]], cor_matr[ix,ix2[3]], xlim = c(0,1), ylim = c(0,1), xlab = colnames(cor_matr)[ix2[4]], ylab = colnames(cor_matr)[ix2[3]])
 lines(c(0,1), c(0,1))
+wilcox.test(cor_matr[ix,'phys_chem'], cor_matr[ix,'ML_16S'], paired = T)
+wilcox.test(cor_matr[ix,'phys_chem'], cor_matr[ix,'ML_18S'], paired = T)
+wilcox.test(cor_matr[ix,'match_18S'], cor_matr[ix,'ML_18S'], paired = T)
+
 
 
 ############################################################################
