@@ -339,6 +339,172 @@ run_xgboost_caret <- function(features_matrix, responses_matrix, numfolds_outer,
   return(predicted_responses_matrix)
 }
 
+## Run XGBoost with grid search and nested cross-validation
+run_xgboost_tune_grid <- function(features_matrix, responses_matrix,
+                               numfolds_outer = 10,
+                               numfolds_inner = 5,
+                               min_samples = 10,
+                               tune_grid = NULL,
+                               output_dir = "output/XGboost",
+                               use_parallel = TRUE) {
+
+  library(rsample)
+  library(caret)
+  library(doParallel)
+  library(ggplot2)
+  
+  if (!dir.exists(output_dir)) dir.create(output_dir, recursive = TRUE)
+  plot_dir <- file.path(output_dir, "plots")
+  if (!dir.exists(plot_dir)) dir.create(plot_dir)
+
+  if (use_parallel) {
+    cores <- parallel::detectCores()
+    cl <- makePSOCKcluster(cores - 2)
+    registerDoParallel(cl)
+    cat("Parallel with", cores - 2, "cores\n")
+  }
+  
+  if (is.null(tune_grid)) {
+    tune_grid <- expand.grid(
+      nrounds = seq(200, 1000, by = 50),
+      gamma = 0,
+      eta = c(0.005, 0.010, 0.100, 1.000),
+      max_depth = c(1, 2, 4, 8, 16, 30),
+      colsample_bytree = 0.8,
+      min_child_weight = 1,
+      subsample = c(0.4, 0.5, 0.6, 0.7)
+    )
+  }
+
+  predicted_responses_matrix <- responses_matrix
+  predicted_responses_matrix[,] <- NA
+  rownames(features_matrix) <- paste0("f", 1:nrow(features_matrix))
+  df_full <- as.data.frame(t(features_matrix))
+
+  best_tunes <- list()
+
+  for (i in 1:nrow(responses_matrix)) {
+    variable_name <- rownames(responses_matrix)[i]
+    response <- responses_matrix[i, ]
+
+    if (sum(!is.na(response)) < min_samples) {
+      cat("Skipping", variable_name, "— too few samples.\n")
+      next
+    }
+
+    response_vector <- as.numeric(response)
+    names(response_vector) <- colnames(responses_matrix)
+
+    keep <- complete.cases(df_full, response_vector)
+    df <- df_full[keep, , drop = FALSE]
+    response_vector <- response_vector[keep]
+    df$response <- response_vector
+
+    quantile_breaks <- quantile(df$response, probs = seq(0, 1, length.out = 5), na.rm = TRUE)
+    
+    if (length(unique(quantile_breaks)) < 5) {
+      warning(paste("Skipping stratification for", variable_name, "- insufficient variability."))
+      outer_folds <- vfold_cv(df, v = numfolds_outer)
+    } else {
+      df$strata <- cut(df$response, breaks = quantile_breaks, include.lowest = TRUE)
+      outer_folds <- vfold_cv(df, v = numfolds_outer, strata = "strata")
+    }
+    
+    pred_vector <- rep(NA, nrow(df))
+    names(pred_vector) <- rownames(df)
+
+    best_params_per_fold <- list()
+
+    for (fold_index in seq_len(nrow(outer_folds))) {
+      cat("Outer fold", fold_index, "for variable", variable_name, "\n")
+      train_df <- analysis(outer_folds$splits[[fold_index]])
+      test_df <- assessment(outer_folds$splits[[fold_index]])
+
+      inner_train_control <- trainControl(method = "cv", number = numfolds_inner, verboseIter = FALSE)
+
+      xgb_tuned <- caret::train(
+        x = train_df[, !colnames(train_df) %in% c("response", "strata"), drop = FALSE],
+        y = train_df$response,
+        method = "xgbTree",
+        trControl = inner_train_control,
+        tuneGrid = tune_grid,
+        verbose = FALSE
+      )
+
+      best_params_per_fold[[fold_index]] <- xgb_tuned$bestTune
+
+      # Save tuning plot
+      p_default <- ggplot(xgb_tuned)
+      plot_file_default <- file.path(plot_dir, paste0("tuning_", variable_name, "_outerfold_", fold_index, ".png"))
+      ggsave(plot_file_default, p_default, width = 6, height = 4)
+
+      # Plot RMSE vs nrounds
+      results_df <- xgb_tuned$results
+
+      # Select columns for plotting
+      plot_df <- results_df[, c("nrounds", "RMSE", "eta", "max_depth")]
+      plot_df$eta <- as.factor(plot_df$eta)
+      plot_df$max_depth <- as.factor(plot_df$max_depth)
+
+      p_rounds <- ggplot(plot_df, aes(x = nrounds, y = RMSE, color = eta)) +
+        geom_line(size = 1) +
+        facet_wrap(~ max_depth, scales = "free_y") +
+        labs(title = paste("RMSE vs nrounds -", variable_name, "Fold", fold_index),
+             x = "Number of Rounds (Trees)",
+             y = "RMSE",
+             color = "Eta (Shrinkage)") +
+        theme_minimal()
+
+      rounds_plot_file <- file.path(plot_dir, paste0("rounds_plot_", variable_name, "_outerfold_", fold_index, ".png"))
+      ggsave(rounds_plot_file, p_rounds, width = 8, height = 5)
+
+      final_model <- caret::train(
+        x = train_df[, !colnames(train_df) %in% c("response", "strata"), drop = FALSE],
+        y = train_df$response,
+        method = "xgbTree",
+        trControl = trainControl(method = "none"),
+        tuneGrid = xgb_tuned$bestTune,
+        verbose = FALSE
+      )
+
+      predictions <- predict(final_model, test_df[, !colnames(test_df) %in% c("response", "strata"), drop = FALSE])
+      pred_vector[rownames(test_df)] <- predictions
+    }
+
+    predicted_responses_matrix[i, keep] <- pred_vector
+
+    perf <- postResample(pred_vector, response_vector)
+    cat("Performance for", variable_name, ": RMSE =", perf["RMSE"], ", R² =", perf["Rsquared"], "\n\n")
+
+    best_tunes[[variable_name]] <- best_params_per_fold[[1]]
+
+    # Save performance metrics
+    write.table(
+      data.frame(Parameter = variable_name, RMSE = perf["RMSE"], Rsquared = perf["Rsquared"]),
+      file = file.path(output_dir, "xgboost_model_performance_nested.csv"),
+      sep = ",", row.names = FALSE,
+      col.names = !file.exists(file.path(output_dir, "xgboost_model_performance_nested.csv")),
+      append = TRUE
+    )
+
+    # Save predictions matrix
+    write.table(predicted_responses_matrix,
+                file = file.path(output_dir, "xgboost_predictions_matrix.tsv"),
+                sep = "\t", quote = FALSE, row.names = TRUE, col.names = NA)
+
+    # Save best tuning params
+    saveRDS(best_tunes, file = file.path(output_dir, "best_xgboost_hyperparameters_nested.rds"))
+  }
+
+  if (use_parallel) {
+    stopCluster(cl)
+    registerDoSEQ()
+    cat("Parallel backend stopped.\n")
+  }
+
+  return(predicted_responses_matrix)
+}
+
 ## Function for getting correlations between predicted and meaured variables
 get_correlations_predictions <- function(responses_matrix, predicted_responses_matrix) {
   cor_matr = matrix(ncol = 4, nrow = nrow(responses_matrix))
