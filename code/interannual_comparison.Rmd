@@ -212,6 +212,17 @@ wilcox.test(cor_df$both_datasets, cor_df$same_dataset, paired = T)
 median(cor_df$both_datasets) - median(cor_df$same_dataset)
 
 ```
+Check for which parameters both datasets are not the best
+
+```{r}
+ix = which(cor_df$both_datasets < cor_df$same_dataset & cor_df$both_datasets < cor_df$different_dataset)
+
+both_worst = cor_df[ix,]
+
+ix = which(cor_df$both_datasets < cor_df$same_dataset)
+
+both_worse_than_same = cor_df[ix,]
 
 
+```
 
