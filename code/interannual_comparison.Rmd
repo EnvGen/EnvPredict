@@ -197,6 +197,7 @@ boxplot(cor_df$different_dataset, cor_df$same_dataset, cor_df$both_datasets,  na
         ylab = 'Pearson correlation coefficient (r)')
 par(mar = c(4,4,2,2))
 plot(cor_df$different_dataset, cor_df$same_dataset, xlab = 'Different dataset', ylab = 'Same datasets', main = 'Different dataset vs both datasets correlation coefficients',
+     col = '#378a76ff', bg = group_colors[1], pch = 21,
      ## Add an identity line
      xlim = c(0,1), ylim = c(0,1))
 lines(c(0,1), c(0,1))

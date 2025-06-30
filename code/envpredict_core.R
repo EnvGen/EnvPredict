@@ -1,7 +1,3 @@
-
-## Set working directory
-setwd("~/aquatic/envpredict/code")
-
 ## Load libraries
 library(ape)
 library(phangorn)
@@ -771,6 +767,7 @@ feature_tables = list(norm_asv_counts_18S, norm_asv_counts_16S, phys_chem)
 names(feature_tables) = c("norm_asv_counts_18S", "norm_asv_counts_16S", "phys_chem")
 response_tables = list(phyt_plan, phyt_plan_genus)
 names(response_tables) = c("phyt_plan", "phyt_plan_genus")
+dim(response_tables[[2]])
 
 # Get common columns across all the tables used (both metabarcoding and zooplankton paramaters available)
 feature_col_names = lapply(feature_tables, colnames)
@@ -823,6 +820,7 @@ for (i in 1:length(response_tables)) {
   }
 }
 
+dim(response_tables[[2]])
 # Get the relative abundance based on matching - only matching ASVs left, only Eukaryotes
 features_matrix = norm_asv_counts_18S_genus[,cols_to_keep]
 

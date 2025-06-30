@@ -34,7 +34,7 @@ pheatmap(cor_matr, cluster_cols = F, cluster_rows = F, labels_row = sample_label
 cor_matr_rf = cor_matr
 
 #####################################################################
-### Physchem predictions from different taxonomic levels - TabPNF ###
+### ML Physchem predictions from different taxonomic levels - TabPNF ###
 results_folder = "../output/TabPNF/DifferentTaxonomicLevels"
 prediction_files = list.files(results_folder, pattern = "Predictions.tsv")
 prediction_files = prediction_files[c(grep("_16S_", prediction_files), grep("_18S_", prediction_files))]
@@ -76,7 +76,7 @@ cor_matr_tpnf = cor_matr
 
 
 ##############################################################
-### Physchem predictions from RepresentationsFromDeepMicro ###
+### ML Physchem predictions from RepresentationsFromDeepMicro ###
 results_folder = "../output/RepresentationsFromDeepMicro"
 #results_folder = "~/aquatic/envpredict/output/RepresentationsFromDeepMicro_prefilt_features"
 prediction_files = list.files(results_folder, pattern = "Predictions.tsv")
@@ -111,8 +111,8 @@ cor_matr_de = cor_matr
 #cor_matr_depf = cor_matr
 
 ########################################################################
-### Physchem predictions from either 16S-ASVs or plankton microscopy ###
-plot_folder = '../output/plots_physchem_preds/'
+### ML Physchem predictions from either 16S-ASVs or plankton microscopy ###
+plot_folder = '../output/plots_ML Physchem_preds/'
 if (!dir.exists(plot_folder)){
   dir.create(plot_folder)
 }
@@ -125,8 +125,8 @@ pdf(paste0(plot_folder, "16S_vs_zooplankton_vs_phytoplankton.pdf"),
 
 layout(matrix(c(1,1,1,1,4,4,4,4,2,3,5,6), 4, 3, byrow = F))
 results_folders = c() 
-results_folders[1] = "../output/physchem_based_on_seqdata_or_phytoplan"
-results_folders[2] = "../output/physchem_based_on_seqdata_or_zooplan"
+results_folders[1] = "../output/ML Physchem_based_on_seqdata_or_phytoplan"
+results_folders[2] = "../output/ML Physchem_based_on_seqdata_or_zooplan"
 for (res_fol in 1:2) {
   results_folder = results_folders[res_fol]
   prediction_files = list.files(results_folder, pattern = "Predictions.tsv")
@@ -134,7 +134,7 @@ for (res_fol in 1:2) {
   pred_matr = read.delim(paste(results_folder, prediction_files[1], sep = "/"), row.names = 1)
   cor_matr = matrix(nrow = nrow(pred_matr), ncol = length(prediction_files))
   colnames(cor_matr) = gsub("_Predictions.tsv","", prediction_files)
-  colnames(cor_matr) = gsub("-based_physchem","", colnames(cor_matr))
+  colnames(cor_matr) = gsub("-based_ML Physchem","", colnames(cor_matr))
   rownames(cor_matr) = rownames(pred_matr)
   num_samples = c()
   for (i in 1:length(prediction_files)) {
@@ -185,7 +185,7 @@ for (res_fol in 1:2) {
 dev.off()
 
 #############################################################################################################
-### Phytoplankton predictions from either 16S-ASVs (ML) 18S-ASVs (ML), 18S-seq-matching, or physchem data ###
+### Phytoplankton predictions from either 16S-ASVs (ML) 18S-ASVs (ML), 18S-seq-matching, or ML Physchem data ###
 results_folder = "../output/phytoplankton_predicted"
 prediction_files = list.files(results_folder, pattern = "Predictions.tsv")
 prediction_files = prediction_files[c(grep("phyt_plan_genus", prediction_files))] # grep("direct_matching_", prediction_files))]
@@ -230,8 +230,8 @@ pheatmap(cor_matr, cluster_cols = F, cluster_rows = F, labels_row = sample_label
 # plotting cor vs number of micr samples where genus was observed
 
 group_colors <- c('#99d8c9','#66c2a4','#2ca25f','#006d2c')
-names(group_colors) <- c('Physchemi', 'ML 16S', 'ML 18S', 'Match 18S')
-colnames(cor_matr) = c('Match 18S', 'ML 16S', 'ML 18S', 'Physchemi', "Renormalized match 18s")
+names(group_colors) <- c('ML Physchem', 'ML 16S', 'ML 18S', 'Match 18S')
+colnames(cor_matr) = c('Match 18S', 'ML 16S', 'ML 18S', 'ML Physchem', "Renormalized match 18s")
 
 pdf(paste0(plot_folder, "predicting_phytoplankton.pdf"),
     width = 9*0.8, height = 6*0.8)
@@ -258,7 +258,12 @@ ix = which(num_samples > 50)
 wilcox.test(cor_matr[ix,ix2[1]], cor_matr[ix,ix2[2]], paired = T)
 wilcox.test(cor_matr[ix,ix2[1]], cor_matr[ix,ix2[3]], paired = T)
 
-
+wilcox.test(cor_matr[ix,'ML Physchem'], cor_matr[ix,'ML 16S'], paired = T)
+wilcox.test(cor_matr[ix,'ML Physchem'], cor_matr[ix,'ML 18S'], paired = T)
+wilcox.test(cor_matr[ix,'Match 18S'], cor_matr[ix,'ML 18S'], paired = T)
+wilcox.test(cor_matr[ix,'Match 18S'], cor_matr[ix,'ML 16S'], paired = T)
+wilcox.test(cor_matr[ix,'Match 18S'], cor_matr[ix,'ML Physchem'], paired = T)
+wilcox.test(cor_matr[ix,'ML 18S'], cor_matr[ix,'ML 16S'], paired = T)
 
 ## Zooplankton predictions from either 16S-ASVs (ML) 18S-ASVs (ML), 18S-seq-matching, or physiochem data
 results_folder = "../output/zooplankton_predicted"
@@ -323,8 +328,8 @@ wilcox.test(cor_matr[ix,ix2[1]], cor_matr[ix,ix2[3]], paired = T)
 
 
 group_colors <- c('#fec44f','#fe9929','#d95f0e','#993404')
-names(group_colors) <- c('Physchemi', 'ML 16S', 'ML 18S', 'Match 18S')
-colnames(cor_matr) = c('Match 18S', 'ML 16S', 'ML 18S', 'Physchemi', "Renormalized match 18s")
+names(group_colors) <- c('ML Physchem', 'ML 16S', 'ML 18S', 'Match 18S')
+colnames(cor_matr) = c('Match 18S', 'ML 16S', 'ML 18S', 'ML Physchem', "Renormalized match 18s")
 
 pdf(paste0(plot_folder, "predicting_zooplankton.pdf"),
     width = 9*0.8, height = 6*0.8)
@@ -351,7 +356,12 @@ ix = which(num_samples > 50)
 wilcox.test(cor_matr[ix,ix2[1]], cor_matr[ix,ix2[2]], paired = T)
 wilcox.test(cor_matr[ix,ix2[1]], cor_matr[ix,ix2[3]], paired = T)
 
-
+wilcox.test(cor_matr[ix,'ML Physchem'], cor_matr[ix,'ML 16S'], paired = T)
+wilcox.test(cor_matr[ix,'ML Physchem'], cor_matr[ix,'ML 18S'], paired = T)
+wilcox.test(cor_matr[ix,'Match 18S'], cor_matr[ix,'ML 18S'], paired = T)
+wilcox.test(cor_matr[ix,'Match 18S'], cor_matr[ix,'ML 16S'], paired = T)
+wilcox.test(cor_matr[ix,'Match 18S'], cor_matr[ix,'ML Physchem'], paired = T)
+wilcox.test(cor_matr[ix,'ML 18S'], cor_matr[ix,'ML 16S'], paired = T)
 # plotting the phyto and zooplankton predictions in one figure (requires the above 2 sections to be run first)
 layout(matrix(c(1,2,5,3,4,6,7,8,11,9,10,12), 4, 3, byrow = T))
 ix2 = c(4,2,3,1)
@@ -387,15 +397,10 @@ boxplot(
 par(mar = c(4,4,1,1))
 plot(cor_matr[ix,ix2[4]], cor_matr[ix,ix2[3]], xlim = c(0,1), ylim = c(0,1), xlab = colnames(cor_matr)[ix2[4]], ylab = colnames(cor_matr)[ix2[3]])
 lines(c(0,1), c(0,1))
-wilcox.test(cor_matr[ix,'phys_chem'], cor_matr[ix,'ML_16S'], paired = T)
-wilcox.test(cor_matr[ix,'phys_chem'], cor_matr[ix,'ML_18S'], paired = T)
-wilcox.test(cor_matr[ix,'match_18S'], cor_matr[ix,'ML_18S'], paired = T)
-
-
 
 ############################################################################
-### Phytoplankton-genus and 18S-genus predictions based on physchem data ###
-results_folder = "~/aquatic/envpredict/output/phytoplankton_genus_micr_and_18S_based_on_physchem"
+### Phytoplankton-genus and 18S-genus predictions based on ML Physchem data ###
+results_folder = "~/aquatic/envpredict/output/phytoplankton_genus_micr_and_18S_based_on_ML Physchem"
 prediction_files = list.files(results_folder, pattern = "Predictions.tsv")
 observation_files = gsub("Predictions", "Actual", prediction_files)
 pred_matr = read.delim(paste(results_folder, prediction_files[1], sep = "/"), row.names = 1)
@@ -408,7 +413,7 @@ length(shared_genus) # 153
 cor_matr = matrix(nrow = length(shared_genus), ncol = 2*length(prediction_files))
 colnames(cor_matr) = c(paste(prediction_files[1], "cor"), paste(prediction_files[1], "non-zero"), paste(prediction_files[2], "cor"), paste(prediction_files[2], "non-zero"))
 colnames(cor_matr) = gsub("_Predictions.tsv","", colnames(cor_matr))
-colnames(cor_matr) = gsub("physchem-based_","", colnames(cor_matr))
+colnames(cor_matr) = gsub("ML Physchem-based_","", colnames(cor_matr))
 rownames(cor_matr) = shared_genus
 
 for (i in 1:length(prediction_files)) {
