@@ -1,7 +1,7 @@
 #!/bin/bash
 
 
-# This script uses the DM.py provided in DeepMicro
+# This script uses the DM.py provided in DeepMicro: https://github.com/minoh0201/DeepMicro
 # Create log directory
 mkdir -p logs
 echo "==== DeepMicro run started $(date) ====" > master_log_april_1.txt
