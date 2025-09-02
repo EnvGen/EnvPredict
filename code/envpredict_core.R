@@ -20,11 +20,8 @@ taxa_file_18S_with_metazoa = "../seq_data/combined/18S/taxa_18S.tsv" ## taxonomi
 seqtab_file_16S = "../seq_data/combined/16S/filtered_seqtab_16S.tsv" ## count matrix for each ASV & sample
 taxa_file_16S =  "../seq_data/combined/16S/filtered_taxa_16S.tsv" ## taxonomic annotation for each ASV
 phys_chem_file = "../env_data/combined/physical_chemical_processed_translation.tsv"
-#bact_plan_file = "env_data/combined/bacterioplankton_processed.tsv"
-#pico_plan_file = "env_data/combined/picoplankton_processed.tsv"
 phyt_plan_file = "../env_data/combined/phytoplankton_processed.tsv"
 zoop_plan_file = "../env_data/combined/zooplankton_processed.tsv"
-# id_translation_file = "../env_data/combined/physical_chemical_processed_translation.tsv"
 
 # read sequencing data
 asv_counts_18S = as.matrix(read.delim(seqtab_file_18S, row.names = 1))
@@ -136,7 +133,7 @@ zoo_plan = as.matrix(zoo_plan)
 ix = which(!is.na(match(colnames(zoo_plan), samples)))
 zoo_plan = zoo_plan[,ix]
 
-## Check ranges of variables
+### Check ranges of variables ###
 
 ix_2015 = which(phys_chem['year',] < 2018)
 ix_2019 = which(phys_chem['year',] > 2018)
@@ -151,6 +148,8 @@ for (i in 1:nrow(phys_chem)) {
   range_ratio = (range_2015[2] - range_2015[1])/(range_2019[2] - range_2019[1])
   print(paste("Range ratio:", range_ratio))
 }
+
+### Define functions ###
 
 # sum per genus for seq data
 sum_seq_per_genus <- function (count_matrix, taxa_matrix) {
@@ -269,7 +268,6 @@ run_randomforest <- function(features_matrix, responses_matrix, numfolds, min_sa
   return(predicted_responses_matrix)
 }
 
-## come here 1
 predict_randomforest <- function(features_matrix_train, responses_matrix_train, features_matrix_target, min_samples = 10) {
   if (!identical(rownames(features_matrix_train), rownames(features_matrix_target))) {
     stop("Rownames of the feature matrices (i.e., ASVs/taxa) do not match!")
@@ -557,7 +555,7 @@ make_scatterplots_actual_vs_predicted <- function(responses_matrix, predicted_re
 
 ### Running predictions to be used in paper ###
 
-## Running physiochem predictions on seq files for different taxonomic levels, using XGboost
+## 1. Running physiochem predictions on seq files for different taxonomic levels, using XGboost
 # 18S levels: Domain	Supergroup	Division	Subdivision	Class	Order	Family	Genus	Species
 # 16S levels: Domain	Phylum	Class	Order	Family Genus	Species
 output_files_path = "../output/DifferentTaxonomicLevels_XGboost"
@@ -582,9 +580,7 @@ for (i in 1:length(infiles)) {
   write.table(predicted_responses_matrix, paste(output_files_path, outfile_predicted, sep = "/"), sep="\t")
 }
 
-
-
-## Running physiochem predictions on deep feature representation files
+## 2. Running physiochem predictions on deep feature representation files
 output_files_path = "../output/RepresentationsFromDeepMicro"
 if (!dir.exists(output_files_path)) { dir.create(output_files_path) }
 features_files_path = "../seq_data/combined/RepresentationsFromDeepMicro"
@@ -605,7 +601,7 @@ for (i in 1:length(infiles)) {
   write.table(predicted_responses_matrix, paste(output_files_path, outfile_predicted, sep = "/"), sep="\t")
 }
 
-## Running physiochem predictions on seq files for different taxonomic levels
+## 3. Running physiochem predictions on seq files for different taxonomic levels
 # 18S levels: Domain	Supergroup	Division	Subdivision	Class	Order	Family	Genus	Species
 # 16S levels: Domain	Phylum	Class	Order	Family Genus	Species
 output_files_path = "../output/DifferentTaxonomicLevels"
@@ -630,8 +626,7 @@ for (i in 1:length(infiles)) {
   write.table(predicted_responses_matrix, paste(output_files_path, outfile_predicted, sep = "/"), sep="\t")
 }
 
-
-## Running physiochem predictions on phytoplankton (based on all and based on genera only) and on seq data, using the same set of samples
+## 4. Running physiochem predictions (Random Forest) on phytoplankton (based on all and based on genera only) and on seq data, using the same set of samples
 output_files_path = "../output/physchem_based_on_seqdata_or_phytoplan"
 responses_matrix_full = phys_chem
 # based on phyt_plan
@@ -678,7 +673,7 @@ outfile_predicted = "16S-based_physchem_Predictions.tsv"
 write.table(predicted_responses_matrix, paste(output_files_path, outfile_predicted, sep = "/"), sep="\t")
 ncol(responses_matrix) # 328
 
-## Running physiochem predictions on zooplankton (based on all and based on genera only) and on seq data, using the same set of samples
+## 5. Running physiochem predictions on zooplankton (based on all and based on genera only) and on seq data, using the same set of samples
 output_files_path = "../output/physchem_based_on_seqdata_or_zooplan"
 responses_matrix_full = phys_chem
 # based on zoo_plan
@@ -725,7 +720,7 @@ outfile_predicted = "16S-based_physchem_Predictions.tsv"
 write.table(predicted_responses_matrix, paste(output_files_path, outfile_predicted, sep = "/"), sep="\t")
 ncol(responses_matrix) # 241
 
-## Running predictions of phytoplankton genera in microscopy and from 18S data, respectively, using physiochem data
+## 6- Running predictions of phytoplankton genera in microscopy and from 18S data, respectively, using physiochem data
 output_files_path = "../output/phytoplankton_genus_micr_and_18S_based_on_physchem"
 features_matrix_full = phys_chem
 responses_matrix_full_1 = norm_asv_counts_18S_genus
@@ -759,32 +754,26 @@ shared_samples = colnames(features_matrix)
 responses_matrix_1 = responses_matrix_full_1[,shared_samples]
 responses_matrix_2 = responses_matrix_full_2[,shared_samples]
 length(shared_samples) # 
-
 predicted_responses_matrix = run_randomforest(features_matrix, responses_matrix_1, 10, 10)
 outfile_actual = "physchem-based_18S-genus_Actual.tsv"
 write.table(responses_matrix_1, paste(output_files_path, outfile_actual, sep = "/"), sep="\t")
 outfile_predicted = "physchem-based_18S-genus_Predictions.tsv"
 write.table(predicted_responses_matrix, paste(output_files_path, outfile_predicted, sep = "/"), sep="\t")
-
 predicted_responses_matrix = run_randomforest(features_matrix, responses_matrix_2, 10, 10)
 outfile_actual = "physchem-based_phytoplan-genus_Actual.tsv"
 write.table(responses_matrix_2, paste(output_files_path, outfile_actual, sep = "/"), sep="\t")
 outfile_predicted = "physchem-based_phytoplan-genus_Predictions.tsv"
 write.table(predicted_responses_matrix, paste(output_files_path, outfile_predicted, sep = "/"), sep="\t")
 
-
-## Running phytoplankton predictions based on seq data, seq data sequence matching, and physchem data, using the same set of samples
+## 7. Running phytoplankton predictions based on seq data, seq data sequence matching, and physchem data, using the same set of samples
 output_files_path = "../output/phytoplankton_predicted/"
 if (!dir.exists(output_files_path)) { dir.create(output_files_path) }
-
-
 # Choose tables with features (to be used for predictions), and responses (to be predicted)
 feature_tables = list(norm_asv_counts_18S, norm_asv_counts_16S, phys_chem)
 names(feature_tables) = c("norm_asv_counts_18S", "norm_asv_counts_16S", "phys_chem")
 response_tables = list(phyt_plan, phyt_plan_genus)
 names(response_tables) = c("phyt_plan", "phyt_plan_genus")
 dim(response_tables[[2]])
-
 # Get common columns across all the tables used (both metabarcoding and zooplankton paramaters available)
 feature_col_names = lapply(feature_tables, colnames)
 response_col_names = lapply(response_tables, colnames)
@@ -796,120 +785,17 @@ for(i in 1:length(feature_tables)) {
 for(i in 1:length(response_tables)) {
   response_tables[[i]] = response_tables[[i]][,cols_to_keep]
 }
-
 # Choose only the physicochemical paramters available for more than 70% of the samples
 # Threshold based on the hustogram plotted using the first code line below
 phys_chem_complete = feature_tables[['phys_chem']]
-
 hist(rowSums(! is.na(phys_chem_complete))/ncol(phys_chem_complete), breaks = 20)
 sort(rowSums(! is.na(phys_chem_complete))/ncol(phys_chem_complete))
 ix_phys_chem = which(rowSums(! is.na(phys_chem_complete))/ncol(phys_chem_complete) > 0.80)
 iy_phys_chem = which(complete.cases(t(phys_chem_complete[ix_phys_chem,])))
-
-## Keep only the samples with complete set of measurements for the selected physicochemical parameters
-phys_chem_complete = phys_chem_complete[ix_phys_chem,iy_phys_chem]
-
-ncol(phys_chem_complete)/ncol(phys_chem)
-
-feature_tables[['phys_chem']] = phys_chem_complete
-
-## Choose the same samples - with complete physicochemical measurements - for metabarcoding and microscopy tables
-cols_to_keep = colnames(phys_chem_complete)
-for(i in 1:length(feature_tables)) {
-  feature_tables[[i]] = feature_tables[[i]][,cols_to_keep]
-}
-for(i in 1:length(response_tables)) {
-  response_tables[[i]] = response_tables[[i]][,cols_to_keep]
-}
-
-# Run predicitons
-for (i in 1:length(response_tables)) {
-  response_matrix = response_tables[[i]]
-  response_name = names(response_tables)[i]
-  for (j in 1:length(feature_tables)) {
-    feature_matrix = feature_tables[[j]]
-    feature_name = names(feature_tables)[j]
-    feature_matrix = do_feature_selection(feature_matrix, 0.1)
-    predicted_responses_matrix_rf_ob = run_randomforest(feature_matrix, response_matrix, 10, 10)
-    write.table(response_matrix, paste(output_files_path, paste(feature_name, "_", response_name,  "_RF10fold_Actual.tsv", sep = ""), sep = "/"), sep="\t")
-    write.table(predicted_responses_matrix_rf_ob, paste(output_files_path, paste(feature_name, "_", response_name, "_RF10fold_Predictions.tsv", sep = ""), sep = "/"), sep="\t")
-  }
-}
-
-dim(response_tables[[2]])
-# Get the relative abundance based on matching - only matching ASVs left, only Eukaryotes
-features_matrix = norm_asv_counts_18S_genus[,cols_to_keep]
-
-responses_matrix = phyt_plan_genus[,cols_to_keep]
-
-c(nrow(features_matrix), nrow(responses_matrix), length(intersect(rownames(features_matrix), rownames(responses_matrix))))
-
-shared_genera = sort(intersect(rownames(features_matrix), rownames(responses_matrix)))
-
-# Save the relative abundances as predictions
-
-predicted_matrix = features_matrix[shared_genera,]
-responses_matrix = responses_matrix[shared_genera,]
-
-write.table(responses_matrix, paste(output_files_path, 'direct_matching_norm_clade_counts_18S_8_phyt_plan_genus_Actual.tsv', sep = "/"), sep="\t")
-write.table(predicted_matrix, paste(output_files_path, 'direct_matching_norm_clade_counts_18S_8_phyt_plan_genus_Predictions.tsv', sep = "/"), sep="\t")
-
-# Get metabarcoding-based relative abundances only for the genera also detected with microscopy
-features_matrix = features_matrix[shared_genera,]
-renorm_matching_abundance = features_matrix
-
-for(k in 1:ncol(renorm_matching_abundance)){
-  renorm_matching_abundance[,k] = renorm_matching_abundance[,k]/sum(renorm_matching_abundance[,k])
-}
-
-## Save the relative abundances as predictions
-predicted_matrix = renorm_matching_abundance
-
-write.table(responses_matrix, paste(output_files_path, 'renomralized_direct_matching_norm_clade_counts_18S_8_phyt_plan_genus_Actual.tsv', sep = "/"), sep="\t")
-write.table(predicted_matrix, paste(output_files_path, 'renomralized_direct_matching_norm_clade_counts_18S_8_phyt_plan_genus_Predictions.tsv', sep = "/"), sep="\t")
-
-
-## Running zooplankton predictions based on seq data and physchem data, using the same set of samples
-
-output_files_path = "../output/zooplankton_predicted/"
-if (!dir.exists(output_files_path)) { dir.create(output_files_path) }
-
-# Choose tables with features (to be used for predictions), and responses (to be predicted)
-feature_tables = list(norm_asv_counts_18S, norm_asv_counts_16S, phys_chem)
-names(feature_tables) = c("norm_asv_counts_18S", "norm_asv_counts_16S", "phys_chem")
-response_tables = list(zoo_plan, zoo_plan_genus)
-names(response_tables) = c("zoo_plan", "zoo_plan_genus")
-
-# Get common columns across all the tables used (both metabarcoding and zooplankton paramaters available)
-
-feature_col_names = lapply(feature_tables, colnames)
-response_col_names = lapply(response_tables, colnames)
-all_col_names = c(feature_col_names, response_col_names)
-cols_to_keep = Reduce(intersect, all_col_names)
-for(i in 1:length(feature_tables)) {
-  feature_tables[[i]] = feature_tables[[i]][,cols_to_keep]
-}
-for(i in 1:length(response_tables)) {
-  response_tables[[i]] = response_tables[[i]][,cols_to_keep]
-}
-
-# Choose only the physicochemical paramters available for more than 70% of the samples
-# Threshold based on the hustogram plotted using the code below
-phys_chem_complete = feature_tables[['phys_chem']]
-
-hist(rowSums(! is.na(phys_chem_complete))/ncol(phys_chem_complete), breaks = 20)
-sort(rowSums(! is.na(phys_chem_complete))/ncol(phys_chem_complete))
-ix_phys_chem = which(rowSums(! is.na(phys_chem_complete))/ncol(phys_chem_complete) > 0.80)
-
 # Keep only the samples with complete set of measurements for the selected physicochemical parameters
-iy_phys_chem = which(complete.cases(t(phys_chem_complete[ix_phys_chem,])))
-
 phys_chem_complete = phys_chem_complete[ix_phys_chem,iy_phys_chem]
-
 ncol(phys_chem_complete)/ncol(phys_chem)
-
 feature_tables[['phys_chem']] = phys_chem_complete
-
 # Choose the same samples - with complete physicochemical measurements - for metabarcoding and microscopy tables
 cols_to_keep = colnames(phys_chem_complete)
 for(i in 1:length(feature_tables)) {
@@ -918,7 +804,6 @@ for(i in 1:length(feature_tables)) {
 for(i in 1:length(response_tables)) {
   response_tables[[i]] = response_tables[[i]][,cols_to_keep]
 }
-
 # Run predicitons
 for (i in 1:length(response_tables)) {
   response_matrix = response_tables[[i]]
@@ -932,11 +817,81 @@ for (i in 1:length(response_tables)) {
     write.table(predicted_responses_matrix_rf_ob, paste(output_files_path, paste(feature_name, "_", response_name, "_RF10fold_Predictions.tsv", sep = ""), sep = "/"), sep="\t")
   }
 }
+# Get the relative abundance based on matching - only matching ASVs left, only Eukaryotes
+features_matrix = norm_asv_counts_18S_genus[,cols_to_keep]
+responses_matrix = phyt_plan_genus[,cols_to_keep]
+c(nrow(features_matrix), nrow(responses_matrix), length(intersect(rownames(features_matrix), rownames(responses_matrix))))
+shared_genera = sort(intersect(rownames(features_matrix), rownames(responses_matrix)))
+# Save the relative abundances as predictions
+predicted_matrix = features_matrix[shared_genera,]
+responses_matrix = responses_matrix[shared_genera,]
+write.table(responses_matrix, paste(output_files_path, 'direct_matching_norm_clade_counts_18S_8_phyt_plan_genus_Actual.tsv', sep = "/"), sep="\t")
+write.table(predicted_matrix, paste(output_files_path, 'direct_matching_norm_clade_counts_18S_8_phyt_plan_genus_Predictions.tsv', sep = "/"), sep="\t")
+# Get metabarcoding-based relative abundances only for the genera also detected with microscopy
+features_matrix = features_matrix[shared_genera,]
+renorm_matching_abundance = features_matrix
+for(k in 1:ncol(renorm_matching_abundance)){
+  renorm_matching_abundance[,k] = renorm_matching_abundance[,k]/sum(renorm_matching_abundance[,k])
+}
+## Save the relative abundances as predictions
+predicted_matrix = renorm_matching_abundance
+write.table(responses_matrix, paste(output_files_path, 'renomralized_direct_matching_norm_clade_counts_18S_8_phyt_plan_genus_Actual.tsv', sep = "/"), sep="\t")
+write.table(predicted_matrix, paste(output_files_path, 'renomralized_direct_matching_norm_clade_counts_18S_8_phyt_plan_genus_Predictions.tsv', sep = "/"), sep="\t")
 
+## 8. Running zooplankton predictions based on seq data and physchem data, using the same set of samples
+output_files_path = "../output/zooplankton_predicted/"
+if (!dir.exists(output_files_path)) { dir.create(output_files_path) }
+# Choose tables with features (to be used for predictions), and responses (to be predicted)
+feature_tables = list(norm_asv_counts_18S, norm_asv_counts_16S, phys_chem)
+names(feature_tables) = c("norm_asv_counts_18S", "norm_asv_counts_16S", "phys_chem")
+response_tables = list(zoo_plan, zoo_plan_genus)
+names(response_tables) = c("zoo_plan", "zoo_plan_genus")
+# Get common columns across all the tables used (both metabarcoding and zooplankton paramaters available)
+feature_col_names = lapply(feature_tables, colnames)
+response_col_names = lapply(response_tables, colnames)
+all_col_names = c(feature_col_names, response_col_names)
+cols_to_keep = Reduce(intersect, all_col_names)
+for(i in 1:length(feature_tables)) {
+  feature_tables[[i]] = feature_tables[[i]][,cols_to_keep]
+}
+for(i in 1:length(response_tables)) {
+  response_tables[[i]] = response_tables[[i]][,cols_to_keep]
+}
+# Choose only the physicochemical paramters available for more than 70% of the samples
+# Threshold based on the hustogram plotted using the code below
+phys_chem_complete = feature_tables[['phys_chem']]
+hist(rowSums(! is.na(phys_chem_complete))/ncol(phys_chem_complete), breaks = 20)
+sort(rowSums(! is.na(phys_chem_complete))/ncol(phys_chem_complete))
+ix_phys_chem = which(rowSums(! is.na(phys_chem_complete))/ncol(phys_chem_complete) > 0.80)
+# Keep only the samples with complete set of measurements for the selected physicochemical parameters
+iy_phys_chem = which(complete.cases(t(phys_chem_complete[ix_phys_chem,])))
+phys_chem_complete = phys_chem_complete[ix_phys_chem,iy_phys_chem]
+ncol(phys_chem_complete)/ncol(phys_chem)
+feature_tables[['phys_chem']] = phys_chem_complete
+# Choose the same samples - with complete physicochemical measurements - for metabarcoding and microscopy tables
+cols_to_keep = colnames(phys_chem_complete)
+for(i in 1:length(feature_tables)) {
+  feature_tables[[i]] = feature_tables[[i]][,cols_to_keep]
+}
+for(i in 1:length(response_tables)) {
+  response_tables[[i]] = response_tables[[i]][,cols_to_keep]
+}
+# Run predicitons
+for (i in 1:length(response_tables)) {
+  response_matrix = response_tables[[i]]
+  response_name = names(response_tables)[i]
+  for (j in 1:length(feature_tables)) {
+    feature_matrix = feature_tables[[j]]
+    feature_name = names(feature_tables)[j]
+    feature_matrix = do_feature_selection(feature_matrix, 0.1)
+    predicted_responses_matrix_rf_ob = run_randomforest(feature_matrix, response_matrix, 10, 10)
+    write.table(response_matrix, paste(output_files_path, paste(feature_name, "_", response_name,  "_RF10fold_Actual.tsv", sep = ""), sep = "/"), sep="\t")
+    write.table(predicted_responses_matrix_rf_ob, paste(output_files_path, paste(feature_name, "_", response_name, "_RF10fold_Predictions.tsv", sep = ""), sep = "/"), sep="\t")
+  }
+}
 # Read the asv_counts with metazoa
 matching_norm_asv_counts_18S_with_metazoa = norm_asv_counts_18S_with_metazoa[,cols_to_keep]
 identical(colnames(matching_norm_asv_counts_18S_with_metazoa), colnames(response_tables[['zoo_plan_genus']]))
-
 # Get normalized genus counts
 with_metazoa_genus = NULL
 i = (ncol(asv_taxa_18S_with_metazoa)-1)
@@ -952,382 +907,66 @@ for (j in 1:length(clade)) {
 }
 rownames(with_metazoa_genus) = clade
 colnames(with_metazoa_genus) = colnames(matching_norm_asv_counts_18S_with_metazoa)
-
 # Get the relative abundance based on matching - only matching ASVs left, only Eukaryotes
 features_matrix = with_metazoa_genus
-
 responses_matrix = zoo_plan_genus[,cols_to_keep]
-
 c(nrow(features_matrix), nrow(responses_matrix), length(intersect(rownames(features_matrix), rownames(responses_matrix))))
-
 shared_genera = sort(intersect(rownames(features_matrix), rownames(responses_matrix)))
 # Save the relative abundances as predictions
-
 predicted_matrix = features_matrix[shared_genera,]
 responses_matrix = responses_matrix[shared_genera,]
-
 write.table(responses_matrix, paste(output_files_path, 'direct_matching_norm_clade_counts_18S_8_zoo_plan_genus_Actual.tsv', sep = "/"), sep="\t")
 write.table(predicted_matrix, paste(output_files_path, 'direct_matching_norm_clade_counts_18S_8_zoo_plan_genus_Predictions.tsv', sep = "/"), sep="\t")
-
 # Get metabarcoding-based relative abundances only for the genera also detected with microscopy
 features_matrix = features_matrix[shared_genera,]
 renorm_matching_abundance = features_matrix
-
 for(k in 1:ncol(renorm_matching_abundance)){
   renorm_matching_abundance[,k] = renorm_matching_abundance[,k]/sum(renorm_matching_abundance[,k])
 }
-
 # Save the relative abundances as predictions
-
 predicted_matrix = renorm_matching_abundance
-
 write.table(responses_matrix, paste(output_files_path, 'renomralized_direct_matching_norm_clade_counts_18S_8_zoo_plan_genus_18S_Actual.tsv', sep = "/"), sep="\t")
 write.table(predicted_matrix, paste(output_files_path, 'renomralized_direct_matching_norm_clade_counts_18S_8_zoo_plan_genus_18S_Predictions.tsv', sep = "/"), sep="\t")
 
-## Interannual
-
+## 9. Interannual
 # Build predictors based on 2019-2020 dataset and predict 2015-2017
-
 output_files_path = "../output/predict_2015_2017/"
 if (!dir.exists(output_files_path)) { dir.create(output_files_path) }
-
 ix_2019_2020 = which(phys_chem['year',] %in% c(2019, 2020))
 ix_2015_2017 = which(phys_chem['year',] %in% c(2015, 2016, 2017))
-
 samples_2019_2020 = colnames(phys_chem)[ix_2019_2020]
 samples_2015_2017 = colnames(phys_chem)[ix_2015_2017]
-
 # phys_chem_prediction based on 16S
 features_matrix_train = norm_asv_counts_16S[,samples_2019_2020]
 responses_matrix_train = phys_chem[,samples_2019_2020]
 features_matrix_target = norm_asv_counts_16S[,samples_2015_2017]
 responses_matrix_target = phys_chem[,samples_2015_2017]
-
 features_matrix_train = do_feature_selection(features_matrix_train, 0.1)
 features_matrix_target = features_matrix_target[rownames(features_matrix_train),]
-
 identical(colnames(features_matrix_train),colnames(responses_matrix_train))
-
 predicted_responses = predict_randomforest(features_matrix_train, responses_matrix_train, features_matrix_target)
-
 write.table(responses_matrix_target, paste(output_files_path, 'norm_asv_counts_16S_phys_chem_2015_2017_different_years_Actual.tsv', sep = "/"), sep="\t")
 write.table(predicted_responses, paste(output_files_path, 'norm_asv_counts_16S_phys_chem_2015_2017_different_years_Predictions.tsv', sep = "/"), sep="\t")
-
 # Predict 2015-2017 with cross-validation based on 2015-2017 dataset
-
 features_matrix = norm_asv_counts_16S[,samples_2015_2017]
 responses_matrix = phys_chem[,samples_2015_2017]
 
 features_matrix = do_feature_selection(features_matrix, 0.1)
 predicted_responses_matrix = run_randomforest(features_matrix, responses_matrix, 10, 10)
-
 outfile_actual = "norm_asv_counts_16S_phys_chem_2015_2017_same_year_Actual.tsv"
 write.table(responses_matrix, paste(output_files_path, outfile_actual, sep = "/"), sep="\t")
 outfile_predicted = "norm_asv_counts_16S_phys_chem_2015_2017_same_year_Predictions.tsv"
 write.table(predicted_responses_matrix, paste(output_files_path, outfile_predicted, sep = "/"), sep="\t")
-
 # Predict 2015-2017 with cross-validation based on both dataset
-
 features_matrix = norm_asv_counts_16S
 responses_matrix = phys_chem
-
 features_matrix = extract_shared_samples(features_matrix, responses_matrix)$features_matrix
 responses_matrix = extract_shared_samples(features_matrix, responses_matrix)$responses_matrix
-
 features_matrix = do_feature_selection(features_matrix, 0.1)
-
 predicted_responses_matrix = run_randomforest(features_matrix, responses_matrix, 10, 10)
-
 features_matrix = features_matrix[,samples_2015_2017]
 predicted_responses_matrix = predicted_responses_matrix[,samples_2015_2017]
-
 outfile_actual = "norm_asv_counts_16S_phys_chem_2015_2017_both_years_Actual.tsv"
 write.table(responses_matrix, paste(output_files_path, outfile_actual, sep = "/"), sep="\t")
 outfile_predicted = "norm_asv_counts_16S_phys_chem_2015_2017_both_years_Predictions.tsv"
 write.table(predicted_responses_matrix, paste(output_files_path, outfile_predicted, sep = "/"), sep="\t")
-
-## phyt_plan_genus_prediction based on 18S
-
-output_files_path = "../output/predict_2015_2017/"
-if (!dir.exists(output_files_path)) { dir.create(output_files_path) }
-
-features_matrix_train = norm_asv_counts_18S[,samples_2019_2020]
-responses_matrix_train = phyt_plan_genus[,which(colnames(phyt_plan_genus) %in% samples_2019_2020)]
-features_matrix_target = norm_asv_counts_18S[,samples_2015_2017]
-responses_matrix_target = phyt_plan_genus[,which(colnames(phyt_plan_genus) %in% samples_2015_2017)]
-
-features_matrix_train = extract_shared_samples(features_matrix_train, responses_matrix_train)$features_matrix
-responses_matrix_train = extract_shared_samples(features_matrix_train, responses_matrix_train)$responses_matrix
-
-identical(colnames(features_matrix_train),colnames(responses_matrix_train))
-
-features_matrix_target = extract_shared_samples(features_matrix_target, responses_matrix_target)$features_matrix
-responses_matrix_target = extract_shared_samples(features_matrix_target, responses_matrix_target)$responses_matrix
-
-identical(colnames(features_matrix_target),colnames(responses_matrix_target))
-
-features_matrix_train = do_feature_selection(features_matrix_train, 0.1)
-features_matrix_target = features_matrix_target[rownames(features_matrix_train),]
-
-predicted_responses = predict_randomforest(features_matrix_train, responses_matrix_train, features_matrix_target)
-
-write.table(responses_matrix_target, paste(output_files_path, 'norm_asv_counts_18S_phyt_plan_genus_2015_2017_different_years_Actual.tsv', sep = "/"), sep="\t")
-write.table(predicted_responses, paste(output_files_path, 'norm_asv_counts_18S_phyt_plan_genus_2015_2017_different_years_Predictions.tsv', sep = "/"), sep="\t")
-
-# Predict 2015-2017 with cross-validation based on 2015-2017 dataset
-
-features_matrix = norm_asv_counts_18S[,samples_2015_2017]
-responses_matrix = phyt_plan_genus
-
-features_matrix_train = extract_shared_samples(features_matrix_train, responses_matrix_train)$features_matrix
-responses_matrix_train = extract_shared_samples(features_matrix_train, responses_matrix_train)$responses_matrix
-
-features_matrix = do_feature_selection(features_matrix, 0.1)
-predicted_responses_matrix = run_randomforest(features_matrix, responses_matrix, 10, 10)
-
-outfile_actual = "norm_asv_counts_18S_phyt_plan_genus_2015_2017_same_year_Actual.tsv"
-write.table(responses_matrix, paste(output_files_path, outfile_actual, sep = "/"), sep="\t")
-outfile_predicted = "norm_asv_counts_18S_phyt_plan_genus_2015_2017_same_year_Predictions.tsv"
-write.table(predicted_responses_matrix, paste(output_files_path, outfile_predicted, sep = "/"), sep="\t")
-
-# Predict 2015-2017 with cross-validation based on both dataset
-
-features_matrix = norm_asv_counts_18S
-responses_matrix = phyt_plan_genus
-
-features_matrix = extract_shared_samples(features_matrix, responses_matrix)$features_matrix
-responses_matrix = extract_shared_samples(features_matrix, responses_matrix)$responses_matrix
-
-features_matrix = do_feature_selection(features_matrix, 0.1)
-predicted_responses_matrix = run_randomforest(features_matrix, responses_matrix, 10, 10)
-
-features_matrix = features_matrix[,which(colnames(features_matrix) %in% samples_2015_2017)]
-predicted_responses_matrix = predicted_responses_matrix[,which(colnames(predicted_responses_matrix) %in% samples_2015_2017)]
-
-outfile_actual = "norm_asv_counts_18S_phyt_plan_genus_2015_2017_both_years_Actual.tsv"
-write.table(responses_matrix, paste(output_files_path, outfile_actual, sep = "/"), sep="\t")
-outfile_predicted = "norm_asv_counts_18S_phyt_plan_genus_2015_2017_both_years_Predictions.tsv"
-write.table(predicted_responses_matrix, paste(output_files_path, outfile_predicted, sep = "/"), sep="\t")
-
-# zoo_plan_genus_prediction based on 16S
-output_files_path = "../output/predict_2015_2017/"
-if (!dir.exists(output_files_path)) { dir.create(output_files_path) }
-
-features_matrix_train = norm_asv_counts_16S[,samples_2019_2020]
-responses_matrix_train = zoo_plan_genus[,which(colnames(zoo_plan_genus) %in% samples_2019_2020)]
-features_matrix_target = norm_asv_counts_16S[,samples_2015_2017]
-responses_matrix_target = zoo_plan_genus[,which(colnames(zoo_plan_genus) %in% samples_2015_2017)]
-
-features_matrix_train = extract_shared_samples(features_matrix_train, responses_matrix_train)$features_matrix
-responses_matrix_train = extract_shared_samples(features_matrix_train, responses_matrix_train)$responses_matrix
-
-identical(colnames(features_matrix_train),colnames(responses_matrix_train))
-
-features_matrix_target = extract_shared_samples(features_matrix_target, responses_matrix_target)$features_matrix
-responses_matrix_target = extract_shared_samples(features_matrix_target, responses_matrix_target)$responses_matrix
-
-identical(colnames(features_matrix_target),colnames(responses_matrix_target))
-
-features_matrix_train = do_feature_selection(features_matrix_train, 0.1)
-features_matrix_target = features_matrix_target[rownames(features_matrix_train),]
-
-predicted_responses = predict_randomforest(features_matrix_train, responses_matrix_train, features_matrix_target)
-
-write.table(responses_matrix_target, paste(output_files_path, 'norm_asv_counts_16S_zoo_plan_genus_2015_2017_different_years_Actual.tsv', sep = "/"), sep="\t")
-write.table(predicted_responses, paste(output_files_path, 'norm_asv_counts_16S_zoo_plan_genus_2015_2017_different_years_Predictions.tsv', sep = "/"), sep="\t")
-
-# Predict 2015-2017 with cross-validation based on 2015-2017 dataset
-
-features_matrix = norm_asv_counts_16S[,samples_2015_2017]
-responses_matrix = zoo_plan_genus
-
-features_matrix_train = extract_shared_samples(features_matrix_train, responses_matrix_train)$features_matrix
-responses_matrix_train = extract_shared_samples(features_matrix_train, responses_matrix_train)$responses_matrix
-
-features_matrix = do_feature_selection(features_matrix, 0.1)
-predicted_responses_matrix = run_randomforest(features_matrix, responses_matrix, 10, 10)
-
-outfile_actual = "norm_asv_counts_16S_zoo_plan_genus_2015_2017_same_year_Actual.tsv"
-write.table(responses_matrix, paste(output_files_path, outfile_actual, sep = "/"), sep="\t")
-outfile_predicted = "norm_asv_counts_16S_zoo_plan_genus_2015_2017_same_year_Predictions.tsv"
-write.table(predicted_responses_matrix, paste(output_files_path, outfile_predicted, sep = "/"), sep="\t")
-
-# Predict 2015-2017 with cross-validation based on both dataset
-features_matrix = norm_asv_counts_16S
-responses_matrix = zoo_plan_genus
-
-features_matrix = extract_shared_samples(features_matrix, responses_matrix)$features_matrix
-responses_matrix = extract_shared_samples(features_matrix, responses_matrix)$responses_matrix
-
-features_matrix = do_feature_selection(features_matrix, 0.1)
-predicted_responses_matrix = run_randomforest(features_matrix, responses_matrix, 10, 10)
-
-features_matrix = features_matrix[,which(colnames(features_matrix) %in% samples_2015_2017)]
-predicted_responses_matrix = predicted_responses_matrix[,which(colnames(predicted_responses_matrix) %in% samples_2015_2017)]
-
-identical(colnames(features_matrix),colnames(predicted_responses_matrix))
-
-outfile_actual = "norm_asv_counts_16S_zoo_plan_genus_2015_2017_both_years_Actual.tsv"
-write.table(responses_matrix, paste(output_files_path, outfile_actual, sep = "/"), sep="\t")
-outfile_predicted = "norm_asv_counts_16S_zoo_plan_genus_2015_2017_both_years_Predictions.tsv"
-write.table(predicted_responses_matrix, paste(output_files_path, outfile_predicted, sep = "/"), sep="\t")
-# 
-# ## Cross-validation based predicitons on 2019/2020 dataset
-# ix_2019_2020 = which(phys_chem['year',] %in% c(2019, 2020))
-# 
-# samples_2019_2020 = colnames(phys_chem)[ix_2019_2020]
-# 
-# ## phys_chem_prediction based on 16S
-# output_files_path = "../output/only_2019_2020/"
-# if (!dir.exists(output_files_path)) { dir.create(output_files_path) }
-# 
-# outfile_actual = "norm_asv_counts_16S_phys_chem_2019_2020_Actual.tsv"
-# outfile_predicted = "norm_asv_counts_16S_phys_chem_2019_2020_Predictions.tsv"
-# responses_matrix_full = phys_chem[,samples_2019_2020]
-# features_matrix_full = norm_asv_counts_16S[,samples_2019_2020]
-# 
-# features_matrix = extract_shared_samples(features_matrix_full, responses_matrix_full)$features_matrix
-# responses_matrix = extract_shared_samples(features_matrix_full, responses_matrix_full)$responses_matrix
-# features_matrix = do_feature_selection(features_matrix, 0.1)
-# predicted_responses_matrix = run_randomforest(features_matrix, responses_matrix, 10, 10)
-# write.table(responses_matrix, paste(output_files_path, outfile_actual, sep = "/"), sep="\t")
-# write.table(predicted_responses_matrix, paste(output_files_path, outfile_predicted, sep = "/"), sep="\t")
-# 
-# ## phyt_plan_genus_prediction based on 18S
-# output_files_path = "../output/only_2019_2020/"
-# if (!dir.exists(output_files_path)) { dir.create(output_files_path) }
-# 
-# outfile_actual = "norm_asv_counts_18S_phyt_plan_genus_2019_2020_Actual.tsv"
-# outfile_predicted = "norm_asv_counts_18S_phyt_plan_genus_2019_2020_Predictions.tsv"
-# responses_matrix_full = phyt_plan_genus[,which(colnames(phyt_plan_genus) %in% samples_2019_2020)]
-# features_matrix_full = norm_asv_counts_18S[,samples_2019_2020]
-# 
-# features_matrix = extract_shared_samples(features_matrix_full, responses_matrix_full)$features_matrix
-# responses_matrix = extract_shared_samples(features_matrix_full, responses_matrix_full)$responses_matrix
-# features_matrix = do_feature_selection(features_matrix, 0.1)
-# predicted_responses_matrix = run_randomforest(features_matrix, responses_matrix, 10, 10)
-# write.table(responses_matrix, paste(output_files_path, outfile_actual, sep = "/"), sep="\t")
-# write.table(predicted_responses_matrix, paste(output_files_path, outfile_predicted, sep = "/"), sep="\t")
-# 
-# ## zoo_plan_genus_prediction based on 16S
-# output_files_path = "../output/only_2019_2020/"
-# if (!dir.exists(output_files_path)) { dir.create(output_files_path) }
-# 
-# outfile_actual = "norm_asv_counts_16S_zoo_plan_genus_2019_2020_Actual.tsv"
-# outfile_predicted = "norm_asv_counts_16S_zoo_plan_genus_2019_2020_Predictions.tsv"
-# responses_matrix_full = zoo_plan_genus[,which(colnames(zoo_plan_genus) %in% samples_2019_2020)]
-# features_matrix_full = norm_asv_counts_16S[,samples_2019_2020]
-# 
-# features_matrix = extract_shared_samples(features_matrix_full, responses_matrix_full)$features_matrix
-# responses_matrix = extract_shared_samples(features_matrix_full, responses_matrix_full)$responses_matrix
-# features_matrix = do_feature_selection(features_matrix, 0.1)
-# predicted_responses_matrix = run_randomforest(features_matrix, responses_matrix, 10, 10)
-# write.table(responses_matrix, paste(output_files_path, outfile_actual, sep = "/"), sep="\t")
-# write.table(predicted_responses_matrix, paste(output_files_path, outfile_predicted, sep = "/"), sep="\t")
-
-
-#####################
-#### Other stuff ####
-
-## Run ML predictions
-
-## use one of the below as features_matrix_full
-#features_matrix_full = asv_counts_16S
-#features_matrix_full = norm_asv_counts_16S
-#features_matrix_full = asv_counts_18S
-#features_matrix_full = norm_asv_counts_18S
-#features_matrix_full = rbind(norm_asv_counts_16S, norm_asv_counts_18S)
-#features_matrix_full = phyt_plan_genus
-#features_matrix_full = zoo_plan_genus
-#features_matrix_full = phys_chem_small
-
-## use one of the below as responseses_matrix_full
-#responses_matrix_full = phys_chem
-#responses_matrix_full = zoo_plan
-#responses_matrix_full = zoo_plan_genus
-#responses_matrix_full = phyt_plan
-#responses_matrix_full = phyt_plan_genus
-#responses_matrix_full = norm_asv_counts_18S_genus
-
-## for using 16S or 18S as features and physchem as responses
-features_matrix_full = norm_asv_counts_16S
-#features_matrix_full = norm_asv_counts_18S
-#features_matrix_full = rbind(norm_asv_counts_16S, norm_asv_counts_18S)
-responses_matrix_full = phys_chem
-#responses_matrix_full = phys_chem[c(10,12,26),]
-features_matrix = extract_shared_samples(features_matrix_full, responses_matrix_full)$features_matrix
-responses_matrix = extract_shared_samples(features_matrix_full, responses_matrix_full)$responses_matrix
-features_matrix = do_feature_selection(features_matrix, 0.1)
-
-predicted_responses_matrix_rf_ob = run_randomforest_out_of_bag(features_matrix, responses_matrix)
-predicted_responses_matrix_rf_10f = run_randomforest(features_matrix, responses_matrix, 10, 10)
-predicted_responses_matrix_xgb = run_xgboost_caret(features_matrix, responses_matrix, numfolds_outer = 10, numfolds_inner = 5, min_samples = 10)
-
-cor_ob = get_correlations_predictions(responses_matrix, predicted_responses_matrix_rf_ob)
-cor_10f = get_correlations_predictions(responses_matrix, predicted_responses_matrix_rf_10f)
-cor_xgb = get_correlations_predictions(responses_matrix, predicted_responses_matrix_xgb)
-
-par(mfrow = c(2,2), mar = c(4,4,1,1))
-plot(cor_ob[,3], cor_xgb[,3], xlim = c(0,1), ylim = c(0,1))
-lines(c(0,1), c(0,1))
-plot(cor_10f[,3], cor_xgb[,3], xlim = c(0,1), ylim = c(0,1))
-lines(c(0,1), c(0,1))
-plot(cor_10f[,3], cor_ob[,3], xlim = c(0,1), ylim = c(0,1))
-lines(c(0,1), c(0,1))
-
-## for using plankton as features and physchem as responses
-#features_matrix_full = zoo_plan_genus
-features_matrix_full = phyt_plan_genus
-responses_matrix_full = phys_chem
-features_matrix = extract_shared_samples(features_matrix_full, responses_matrix_full)$features_matrix
-responses_matrix = extract_shared_samples(features_matrix_full, responses_matrix_full)$responses_matrix
-features_matrix = do_feature_selection(features_matrix, 0.1)
-predicted_responses_matrix_rf_ob = run_randomforest_out_of_bag(features_matrix, responses_matrix)
-
-## for using 16S or 18S as features and plankton as responses
-features_matrix_full = norm_asv_counts_16S
-#features_matrix_full = norm_asv_counts_18S
-responses_matrix_full = phyt_plan_genus
-features_matrix = extract_shared_samples(features_matrix_full, responses_matrix_full)$features_matrix
-responses_matrix = extract_shared_samples(features_matrix_full, responses_matrix_full)$responses_matrix
-features_matrix = do_feature_selection(features_matrix, 0.1)
-predicted_responses_matrix_rf_ob = run_randomforest_out_of_bag(features_matrix, responses_matrix)
-
-## for using physchem as features and plankton genera as responses
-features_matrix_full = phys_chem
-responses_matrix_full = phyt_plan_genus
-features_matrix = extract_shared_samples(features_matrix_full, responses_matrix_full)$features_matrix
-responses_matrix = extract_shared_samples(features_matrix_full, responses_matrix_full)$responses_matrix
-#features_matrix = do_feature_selection(features_matrix, 0.1)
-predicted_responses_matrix_rf_ob = run_randomforest_out_of_bag(features_matrix, responses_matrix)
-
-## for using physchem as features and 18S genera as responses
-features_matrix_full = phys_chem
-responses_matrix_full = norm_asv_counts_18S_genus
-features_matrix = extract_shared_samples(features_matrix_full, responses_matrix_full)$features_matrix
-responses_matrix = extract_shared_samples(features_matrix_full, responses_matrix_full)$responses_matrix
-#features_matrix = do_feature_selection(features_matrix, 0.1)
-predicted_responses_matrix_rf_ob = run_randomforest_out_of_bag(features_matrix, responses_matrix)
-
-## plot gaussion distributions for presentation
-par(mfcol = c(3,3))
-lw = 3
-curve(dnorm(x, 0, 1), from=-4, to=4, axes = F, xlab = "", ylab = "", col = "lightblue", lw = lw)
-box()
-curve(dnorm(x, 0, 1), from=-5, to=3, axes = F, xlab = "", ylab = "", col = "lightblue", lw = lw)
-box()
-curve(dnorm(x, 0, 1), from=-3, to=5, axes = F, xlab = "", ylab = "", col = "lightblue", lw = lw)
-box()
-curve(dnorm(x, 0, 1), from=-4, to=4, axes = F, xlab = "", ylab = "", col = "lightgreen", lw = lw)
-box()
-curve(dnorm(x, 0, 1), from=-5, to=3, axes = F, xlab = "", ylab = "", col = "lightgreen", lw = lw)
-box()
-curve(dnorm(x, 0, 1), from=-4, to=4, axes = F, xlab = "", ylab = "", col = "lightgreen", lw = lw)
-box()
-curve(dnorm(x, 0, 1), from=-5, to=3, axes = F, xlab = "", ylab = "", col = "orange", lw = lw)
-box()
-curve(dnorm(x, 0, 1), from=-4, to=4, axes = F, xlab = "", ylab = "", col = "orange", lw = lw)
-box()
-curve(dnorm(x, 0, 1), from=-3, to=5, axes = F, xlab = "", ylab = "", col = "orange", lw = lw)
-box()
-
