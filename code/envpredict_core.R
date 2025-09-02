@@ -1,4 +1,6 @@
-## Load libraries
+######################
+### Load libraries ###
+
 library(ape)
 library(phangorn)
 library(seqinr)
@@ -11,10 +13,11 @@ library(stringi)
 library(lubridate)
 library(caret)
 
-## Set files
+################
+## Set files ###
+
 seqtab_file_18S = "../seq_data/combined/18S/filtered_seqtab_18S.tsv" ## count matrix for each ASV & sample
 taxa_file_18S = "../seq_data/combined/18S/filtered_taxa_18S.tsv" ## taxonomic annotation for each ASV
-## Set files
 seqtab_file_18S_with_metazoa = "../seq_data/combined/18S/seqtab_18S.tsv" ## count matrix for each ASV & sample
 taxa_file_18S_with_metazoa = "../seq_data/combined/18S/taxa_18S.tsv" ## taxonomic annotation for each ASV
 seqtab_file_16S = "../seq_data/combined/16S/filtered_seqtab_16S.tsv" ## count matrix for each ASV & sample
@@ -23,13 +26,15 @@ phys_chem_file = "../env_data/combined/physical_chemical_processed_translation.t
 phyt_plan_file = "../env_data/combined/phytoplankton_processed.tsv"
 zoop_plan_file = "../env_data/combined/zooplankton_processed.tsv"
 
-# read sequencing data
+#################################
+### Read and pre-process data ###
+
+## Read sequencing data
 asv_counts_18S = as.matrix(read.delim(seqtab_file_18S, row.names = 1))
 asv_taxa_18S = as.matrix(read.delim(taxa_file_18S, row.names = 1))[,1:9]
 
 asv_counts_18S_with_metazoa = as.matrix(read.delim(seqtab_file_18S_with_metazoa, row.names = 1))
 asv_taxa_18S_with_metazoa = as.matrix(read.delim(taxa_file_18S_with_metazoa, row.names = 1))[,1:9]
-
 
 asv_counts_16S = as.matrix(read.delim(seqtab_file_16S, row.names = 1))
 asv_taxa_16S = as.matrix(read.delim(taxa_file_16S, row.names = 1))[,1:7]
@@ -52,15 +57,14 @@ identical(colnames(asv_counts_16S), colnames(asv_counts_18S_with_metazoa))
 colnames(asv_counts_16S) = gsub("^X", "", colnames(asv_counts_16S))
 samples = colnames(asv_counts_16S)
 
-
-# read physchem
+## Read physchem data
 phys_chem = read.delim(phys_chem_file)
 
-## Match the original and alternative sample ideas
+## Match the original and alternative sample IDs
 alt_ids = cbind(phys_chem$sample_id, phys_chem$station_id_date)
 samples_alt = alt_ids[match(samples, alt_ids[,1]),2]
 
-## Remove without station ID
+## Remove samples without station ID
 ix = setdiff(1:length(samples_alt), grep("NA_", samples_alt)) # samples with station id
 asv_counts_16S = asv_counts_16S[,ix]
 asv_counts_18S = asv_counts_18S[,ix]
@@ -69,7 +73,7 @@ samples = samples[ix]
 samples_alt = samples_alt[ix]
 colnames(asv_counts_16S) = colnames(asv_counts_18S) = colnames(asv_counts_18S_with_metazoa) = samples_alt
 
-
+## Normalise counts
 norm_asv_counts_16S = t(t(asv_counts_16S)/colSums(asv_counts_16S))
 norm_asv_counts_18S = t(t(asv_counts_18S)/colSums(asv_counts_18S))
 norm_asv_counts_18S_with_metazoa = t(t(asv_counts_18S_with_metazoa)/colSums(asv_counts_18S_with_metazoa))
@@ -113,10 +117,7 @@ phys_chem_small = phys_chem_small[, which(!is.na(colSums(phys_chem_small)))] # l
 
 samples = samples_alt # no need of original sample names any more
 
-#bact_plan = read.delim(bact_plan_file)
-#pico_plan = read.delim(pico_plan_file)
-
-# read plankton microscopy data
+## Read plankton microscopy data
 phyt_plan = read.delim(phyt_plan_file)
 colnames(phyt_plan) = gsub("^X", "", colnames(phyt_plan))
 colnames(phyt_plan) = gsub("\\.", "-", colnames(phyt_plan))
@@ -133,11 +134,9 @@ zoo_plan = as.matrix(zoo_plan)
 ix = which(!is.na(match(colnames(zoo_plan), samples)))
 zoo_plan = zoo_plan[,ix]
 
-### Check ranges of variables ###
-
+## Check ranges of variables
 ix_2015 = which(phys_chem['year',] < 2018)
 ix_2019 = which(phys_chem['year',] > 2018)
-
 for (i in 1:nrow(phys_chem)) {
   range_2015 = range(na.omit(phys_chem[i,ix_2015]))
   range_2019 = range(na.omit(phys_chem[i,ix_2019]))
@@ -149,6 +148,7 @@ for (i in 1:nrow(phys_chem)) {
   print(paste("Range ratio:", range_ratio))
 }
 
+########################
 ### Define functions ###
 
 # sum per genus for seq data
@@ -286,7 +286,6 @@ predict_randomforest <- function(features_matrix_train, responses_matrix_train, 
   }
   return(predicted_responses_matrix)
 }
-
 
 run_gbm <- function(features_matrix, responses_matrix, numfolds, min_samples) {
   min_samples_in_fold = 1
@@ -553,7 +552,8 @@ make_scatterplots_actual_vs_predicted <- function(responses_matrix, predicted_re
   }
 }
 
-### Running predictions to be used in paper ###
+#########################################
+### Running predictions used in paper ###
 
 ## 1. Running physiochem predictions on seq files for different taxonomic levels, using XGboost
 # 18S levels: Domain	Supergroup	Division	Subdivision	Class	Order	Family	Genus	Species
@@ -720,7 +720,7 @@ outfile_predicted = "16S-based_physchem_Predictions.tsv"
 write.table(predicted_responses_matrix, paste(output_files_path, outfile_predicted, sep = "/"), sep="\t")
 ncol(responses_matrix) # 241
 
-## 6- Running predictions of phytoplankton genera in microscopy and from 18S data, respectively, using physiochem data
+## 6. Running predictions of phytoplankton genera in microscopy and from 18S data, respectively, using physiochem data
 output_files_path = "../output/phytoplankton_genus_micr_and_18S_based_on_physchem"
 features_matrix_full = phys_chem
 responses_matrix_full_1 = norm_asv_counts_18S_genus
@@ -928,7 +928,7 @@ predicted_matrix = renorm_matching_abundance
 write.table(responses_matrix, paste(output_files_path, 'renomralized_direct_matching_norm_clade_counts_18S_8_zoo_plan_genus_18S_Actual.tsv', sep = "/"), sep="\t")
 write.table(predicted_matrix, paste(output_files_path, 'renomralized_direct_matching_norm_clade_counts_18S_8_zoo_plan_genus_18S_Predictions.tsv', sep = "/"), sep="\t")
 
-## 9. Interannual
+## 9. Interannual predictions
 # Build predictors based on 2019-2020 dataset and predict 2015-2017
 output_files_path = "../output/predict_2015_2017/"
 if (!dir.exists(output_files_path)) { dir.create(output_files_path) }
