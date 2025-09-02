@@ -5,9 +5,6 @@
 # 
 # Let's load the packages first
 
-# In[130]:
-
-
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import KFold
@@ -19,22 +16,13 @@ from scipy.stats import pearsonr, spearmanr
 import matplotlib.pyplot as plt
 from joblib import Parallel, delayed
 
-
-
 # Define functions
-
-# In[100]:
-
 
 # Function to use alternative sample names
 def use_alternative_sample_names(matrix, alt_ids):
     ns = alt_ids.set_index('sample_id').loc[matrix.columns, 'station_id_date'].values
     matrix.columns = ns
     return matrix
-
-
-# In[101]:
-
 
 # Function to extract shared samples
 def extract_shared_samples(features_matrix_full, responses_matrix_full):
@@ -47,38 +35,11 @@ def extract_shared_samples(features_matrix_full, responses_matrix_full):
     responses_matrix = responses_matrix.loc[responses_matrix_bin.sum(axis=1) > 0, :]
     return features_matrix, responses_matrix
 
-
-# In[102]:
-
-
 # Function to perform feature selection
 def do_feature_selection(features_matrix, occupancy):
     binary_features_matrix = features_matrix.map(lambda x: 1 if x > 0 else 0)
     ix = binary_features_matrix.sum(axis=1) > occupancy * features_matrix.shape[1]
     return features_matrix.loc[ix, :]
-
-
-# In[109]:
-
-
-# # Function to run TabPFN
-# def run_tabpfn(features_matrix, responses_matrix, numfolds, min_samples):
-#     predicted_responses_matrix = responses_matrix.copy()
-#     predicted_responses_matrix[:] = np.nan
-#     kf = KFold(n_splits=numfolds)
-#     for i in range(responses_matrix.shape[0]):
-#         response = responses_matrix.iloc[i, :]
-#         if response.dropna().shape[0] < min_samples:
-#             continue
-#         df = pd.DataFrame(np.column_stack((response, features_matrix.T)))
-#         for train_index, test_index in kf.split(df):
-#             train_data, test_data = df.iloc[train_index, :], df.iloc[test_index, :]
-#             train_data = train_data.dropna(subset=[0])
-#             if train_data.shape[0] >= min_samples:
-#                 model = TabPFNRegressor(device='auto')
-#                 model.fit(train_data.iloc[:, 1:], train_data.iloc[:, 0])
-#                 predicted_responses_matrix.iloc[i, test_index] = model.predict(test_data.iloc[:, 1:])
-#     return predicted_responses_matrix
 
 def process_fold(train_index, test_index, df, min_samples):
     train_data, test_data = df.iloc[train_index, :], df.iloc[test_index, :]
@@ -137,11 +98,6 @@ def process_file(infile, alt_ids, RF_output_files_path, output_files_path, num_f
     # Write the predicted responses matrix to a file
     predicted_responses_matrix.to_csv(os.path.join(output_files_path, outfile_predicted), sep="\t")
 
-# Define infiles
-
-# In[105]:
-
-
 # Define the output directory and create it if it doesn't exist
 output_files_path = "../TabPNF/DifferentTaxonomicLevels"
 os.makedirs("../TabPNF/", exist_ok=True)
@@ -161,10 +117,6 @@ infiles = sorted(
 )
 infiles = [f for f in infiles if not f.endswith("_1.tsv")]
 
-
-# In[106]:
-
-
 # Load the phys_chem data
 phys_chem = pd.read_csv("../env_data/combined/physical_chemical_processed_translation.tsv", delimiter="\t")
 
@@ -174,33 +126,3 @@ alt_ids = pd.DataFrame({'sample_id': phys_chem['sample_id'], 'station_id_date': 
 
 # Parallelize the processing of input files
 Parallel(n_jobs=os.cpu_count())(delayed(process_file)(infile, alt_ids, RF_output_files_path, output_files_path) for infile in infiles)
-
-# In[131]:
-
-
-# # Process each input file
-# for infile in infiles:
-#     outfile_actual = os.path.basename(infile).replace(".tsv", "_RF10fold_Actual.tsv")
-#     outfile_predicted = os.path.basename(infile).replace(".tsv", "_RF10fold_Predictions.tsv")
-
-#     # Read the responses matrix from the actual file
-#     responses_matrix_full = pd.read_csv(os.path.join(RF_output_files_path, outfile_actual), delimiter="\t", index_col=0)
-    
-#     # Read the features matrix
-#     features_matrix_full = pd.read_csv(infile, delimiter="\t", index_col=0)
-
-#     # Use alternative sample names
-#     features_matrix_full = use_alternative_sample_names(features_matrix_full, alt_ids)
-
-#     # Extract shared samples
-#     features_matrix, responses_matrix = extract_shared_samples(features_matrix_full, responses_matrix_full)
-
-#     # Perform feature selection
-#     features_matrix = do_feature_selection(features_matrix, 0.1)
-
-#     # Run TabPFN
-#     predicted_responses_matrix = run_tabpfn(features_matrix, responses_matrix, 10, 10)
-    
-#     # Write the predicted responses matrix to a file
-#     predicted_responses_matrix.to_csv(os.path.join(output_files_path, outfile_predicted), sep="\t")
-
