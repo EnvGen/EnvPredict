@@ -136,6 +136,22 @@ zoo_plan = as.matrix(zoo_plan)
 ix = which(!is.na(match(colnames(zoo_plan), samples)))
 zoo_plan = zoo_plan[,ix]
 
+## Check ranges of variables
+
+ix_2015 = which(phys_chem['year',] < 2018)
+ix_2019 = which(phys_chem['year',] > 2018)
+
+for (i in 1:nrow(phys_chem)) {
+  range_2015 = range(na.omit(phys_chem[i,ix_2015]))
+  range_2019 = range(na.omit(phys_chem[i,ix_2019]))
+  print(rownames(phys_chem)[i])
+  print(paste("2015:", paste(range_2015, collapse = ' '), "2019:", paste(range_2019, collapse = ' ')))
+  overlap = (min(range_2015[2], range_2019[2]) - max(range_2015[1], range_2019[1]))/(range_2019[2] - range_2019[1])
+  print(paste("Overlap:", overlap))
+  range_ratio = (range_2015[2] - range_2015[1])/(range_2019[2] - range_2019[1])
+  print(paste("Range ratio:", range_ratio))
+}
+
 # sum per genus for seq data
 sum_seq_per_genus <- function (count_matrix, taxa_matrix) {
   genus = taxa_matrix[,8]

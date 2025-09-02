@@ -1,7 +1,7 @@
 ---
-title: "Evaluation of cross-dataset (interannual) predicitions"
-author: "Krzysztof"
-date: "2025-03-28"
+title: "Evaluation of cross-dataset predicitons, linear regression"
+author: "Krzysztof Jurdzinski"
+date: "2025-07-15"
 output: html_document
 ---
 
@@ -60,36 +60,6 @@ if (!dir.exists(plot_folder)){
 }
 ```
 
-## Define the function for the correlation coefficient based on sum of squares along the identity line
-```{r}
-rsquared <- function(predictions, actual) {
-  ## Take only complete values from x and y
-  i = which(!is.na(predictions) & !is.na(actual))
-  predictions = predictions[i]
-  actual = actual[i]
-  if(length(predictions) == 0 || length(actual) == 0){
-    return(NA)
-  }
-  # Calculate the sum of squares along the identity line
-  ss_id <- sum((actual - predictions)^2)
-  
-  # Calculate the sum of squares of the residuals
-  ss_tot <- sum((actual - mean(actual))^2)
-  
-  # Calculate the correlation coefficient
-  if(ss_tot != 0){
-    r_squared <- 1 - (ss_id / ss_tot)
-    }else if (ss_tot == 0){
-    r_squared = 0
-    }
-  
-  return(r_squared)
-}
-
-```
-
-
-
 Compare actual phys_chem values 2015-2017 predicted 
 
 ```{r}
@@ -117,36 +87,14 @@ for(parameter in list_of_parameters){
     next
   }
   
-  # png(paste0(plot_subfolder, parameter, ".png"), width = 800, height = 800)
-  pdf(paste0(plot_subfolder, parameter, ".pdf"), width = 6, height = 6)
-  
-  plot(data$true_values, data$predictions, xlab = 'Data', ylab = 'Predictions', main = parameter,
-       bg = alpha('#edf8b1', 0.5), pch = 21,
-       xlim = c(min(data),max(data)), ylim = c(min(data),max(data)))
-  lines(c(0,max(data)), c(0,max(data)))
-  dev.off()
-  
   # correlation = cor(data$predictions, data$true_values)
-  correlation = rsquared(data$predictions, data$true_values)
+  correlation = round(summary(lm(data$predictions ~ data$true_values))$r.squared, 3)
   
   cor_values = c(cor_values, correlation)
   names(cor_values)[length(cor_values)] = parameter
 }
 
 sort(cor_values)
-
-```
-Visualize the correlation
-
-```{r}
-par(mfcol = c(1,1), mar = c(2,10,2,20), xpd = T)
-barplot(cor_values, beside = T, horiz = T, las = 1, cex.names = 0.8,
-        ## Make it list all the names
-        names.arg = names(cor_values),
-        ##Make x-axis scale from 0 to 1
-        xlim = c(0,1)
-        )
-# barplot(t(cor_matr), beside = T, horiz = T, las = 1, legend = T, names.arg = sample_labels, cex.names = 0.8, args.legend = list(x = "bottom", inset = c(1,-0.25)))
 
 ```
 
@@ -164,11 +112,6 @@ identical(colnames(predictions), colnames(true_values))
 
 cor_values_both_datasets = c()
 
-plot_subfolder = paste0(plot_folder, "both_datasets/")
-if (!dir.exists(plot_subfolder)){
-  dir.create(plot_subfolder)
-}
-
 for(parameter in list_of_parameters){
   
   
@@ -179,15 +122,7 @@ for(parameter in list_of_parameters){
     next
   }
   
-  pdf(paste0(plot_subfolder, parameter, ".pdf"), width = 6, height = 6)
-  
-  plot(data$true_values, data$predictions, xlab = 'Data', ylab = 'Predictions', main = parameter,
-       bg = alpha('#2c7fb8', 0.5), pch = 21,
-       xlim = c(min(data),max(data)), ylim = c(min(data),max(data)))
-  lines(c(0,max(data)), c(0,max(data)))
-  dev.off()
-  
-  correlation = rsquared(data$predictions, data$true_values)
+  correlation = round(summary(lm(data$predictions ~ data$true_values))$r.squared, 3)
   
   cor_values_both_datasets = c(cor_values_both_datasets, correlation)
   names(cor_values_both_datasets)[length(cor_values_both_datasets)] = parameter
@@ -210,11 +145,6 @@ identical(colnames(predictions), colnames(true_values))
 
 cor_values_same_dataset = c()
 
-plot_subfolder = paste0(plot_folder, "same_dataset/")
-if (!dir.exists(plot_subfolder)){
-  dir.create(plot_subfolder)
-}
-
 
 for(parameter in list_of_parameters){
   
@@ -226,16 +156,7 @@ for(parameter in list_of_parameters){
     next
   }
   
-  # png(paste0(plot_subfolder, parameter, ".png"), width = 800, height = 800)
-  pdf(paste0(plot_subfolder, parameter, ".pdf"), width = 6, height = 6)
-  
-  plot(data$true_values, data$predictions, xlab = 'Data', ylab = 'Predictions', main = parameter,
-       bg = alpha('#7fcdbb', 0.5), pch = 21,
-       xlim = c(min(data),max(data)), ylim = c(min(data),max(data)))
-  lines(c(0,max(data)), c(0,max(data)))
-  dev.off()
-  
-  correlation = rsquared(data$predictions, data$true_values)
+  correlation = round(summary(lm(data$predictions ~ data$true_values))$r.squared, 3)
   
   cor_values_same_dataset = c(cor_values_same_dataset, correlation)
   names(cor_values_same_dataset)[length(cor_values_same_dataset)] = parameter
@@ -302,8 +223,6 @@ ix = which(apply(cor_df[,c(3,4)], 1, max) > 0.8)
 
 wilcox.test(cor_df$same_dataset[ix], cor_df$different_dataset[ix], paired = T)
 median(cor_df$same_dataset[ix]) - median(cor_df$different_dataset[ix])
-
-cor_df[order(cor_df[,"both_datasets"])[10],"parameter"]
 
 ```
 Check for which parameters using both datasets is not the best strategy
