@@ -6,3 +6,4 @@ output/
 RepresentationsFromDeepMicro/
 predictions/
 code/.Rhistory
+.DS_Store

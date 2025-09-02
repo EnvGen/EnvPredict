@@ -11,7 +11,6 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## R Markdown
 
-
 ```{r packages, include=FALSE}
 library(dplyr)
 library(ggplot2)
@@ -136,21 +135,8 @@ for(parameter in list_of_parameters){
 sort(cor_values)
 
 ```
-Visualize the correlation
 
-```{r}
-par(mfcol = c(1,1), mar = c(2,10,2,20), xpd = T)
-barplot(cor_values, beside = T, horiz = T, las = 1, cex.names = 0.8,
-        ## Make it list all the names
-        names.arg = names(cor_values),
-        ##Make x-axis scale from 0 to 1
-        xlim = c(0,1)
-        )
-# barplot(t(cor_matr), beside = T, horiz = T, las = 1, legend = T, names.arg = sample_labels, cex.names = 0.8, args.legend = list(x = "bottom", inset = c(1,-0.25)))
-
-```
-
-Get the correlations for the 16S ASV based CV predictions
+Get the correlations for the 16S ASV based CV predictions (both datasets)
 
 ```{r}
 predictions = list_of_prediction_dfs[[which(model_names == 'norm_asv_counts_16S_phys_chem_2015_2017_both_years')]]
