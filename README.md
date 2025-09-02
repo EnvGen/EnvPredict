@@ -17,9 +17,9 @@ tabpnf_predictions.py - runs the TabPNF predictions
 
 ### Evaluation scripts
 
-
-
-
+envpredict_eval.R - compares predictions of physicochemical data based on metabarcoding and microscopy data, as well as predictions of phyto- and zoo-plankton based on different data and approaches (Fig. 3 & 4).\
+interannual_comparison.Rmd - compares predictions of physicochemical parameters for the 2015-2017 dataset based on models trained on the 2019-2020 dataset (different dataset), 2015-2017 dataset (same dataset), or both datasets (FIg. 5, Suppplementary Fig. S1 & S2).\
+interannual_comparison_linear_regression.Rmd - runs an analysis analogous to interannual_comparison.Rmd, but checks if the actual and predicted values correlate with each other, not if they are the same.
 
 ## Running the EQRS analysis with HEAT
 1. Unzip HEAT.zip
