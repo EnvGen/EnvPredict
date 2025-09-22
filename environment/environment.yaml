@@ -8,7 +8,7 @@ dependencies:
   - r-remotes
   - libgit2
   - pkg-config
-  - tabpnf=2.0.3
+  - tabpfn=2.0.3
   - r-tidyverse
   - r-anytime
   - r-viridis

@@ -7,3 +7,10 @@ RepresentationsFromDeepMicro/
 predictions/
 code/.Rhistory
 .DS_Store
+.gitattributes
+
+# pixi environments
+.pixi
+pixi.toml
+pixi.lock
+*.egg-info
