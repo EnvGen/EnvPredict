@@ -16,15 +16,15 @@ library(caret)
 ################
 ## Set files ###
 
-seqtab_file_18S = "../seq_data/combined/18S/filtered_seqtab_18S.tsv" ## count matrix for each ASV & sample
-taxa_file_18S = "../seq_data/combined/18S/filtered_taxa_18S.tsv" ## taxonomic annotation for each ASV
-seqtab_file_18S_with_metazoa = "../seq_data/combined/18S/seqtab_18S.tsv" ## count matrix for each ASV & sample
-taxa_file_18S_with_metazoa = "../seq_data/combined/18S/taxa_18S.tsv" ## taxonomic annotation for each ASV
-seqtab_file_16S = "../seq_data/combined/16S/filtered_seqtab_16S.tsv" ## count matrix for each ASV & sample
-taxa_file_16S =  "../seq_data/combined/16S/filtered_taxa_16S.tsv" ## taxonomic annotation for each ASV
-phys_chem_file = "../env_data/combined/physical_chemical_processed_translation.tsv"
-phyt_plan_file = "../env_data/combined/phytoplankton_processed.tsv"
-zoop_plan_file = "../env_data/combined/zooplankton_processed.tsv"
+seqtab_file_18S = "../seq_data/18S/filtered_seqtab_18S.tsv" ## count matrix for each ASV & sample
+taxa_file_18S = "../seq_data/18S/filtered_taxa_18S.tsv" ## taxonomic annotation for each ASV
+seqtab_file_18S_with_metazoa = "../seq_data/18S/seqtab_18S.tsv" ## count matrix for each ASV & sample
+taxa_file_18S_with_metazoa = "../seq_data/18S/taxa_18S.tsv" ## taxonomic annotation for each ASV
+seqtab_file_16S = "../seq_data/16S/filtered_seqtab_16S.tsv" ## count matrix for each ASV & sample
+taxa_file_16S =  "../seq_data/16S/filtered_taxa_16S.tsv" ## taxonomic annotation for each ASV
+phys_chem_file = "../env_data/physical_chemical_processed_translation.tsv"
+phyt_plan_file = "../env_data/phytoplankton_processed.tsv"
+zoop_plan_file = "../env_data/zooplankton_processed.tsv"
 
 #################################
 ### Read and pre-process data ###
@@ -560,8 +560,8 @@ make_scatterplots_actual_vs_predicted <- function(responses_matrix, predicted_re
 # 16S levels: Domain	Phylum	Class	Order	Family Genus	Species
 output_files_path = "../output/DifferentTaxonomicLevels_XGboost"
 if (!dir.exists(output_files_path)) { dir.create(output_files_path) }
-features_files_path_16S = "../seq_data/combined/16S"
-features_files_path_18S = "../seq_data/combined/18S"
+features_files_path_16S = "../seq_data/16S"
+features_files_path_18S = "../seq_data/18S"
 infiles = sort(c(list.files(features_files_path_16S, pattern="norm_.+tsv$", full.names = TRUE), list.files(features_files_path_18S, pattern="norm_.+tsv$", full.names = TRUE))) # only include files starting with norm_
 infiles = infiles[-grep("_1\\.tsv$", infiles)]
 for (i in 1:length(infiles)) {
@@ -583,7 +583,7 @@ for (i in 1:length(infiles)) {
 ## 2. Running physiochem predictions on deep feature representation files
 output_files_path = "../output/RepresentationsFromDeepMicro"
 if (!dir.exists(output_files_path)) { dir.create(output_files_path) }
-features_files_path = "../seq_data/combined/RepresentationsFromDeepMicro"
+features_files_path = "../seq_data/RepresentationsFromDeepMicro"
 list.files(features_files_path)
 infiles = sort(list.files(features_files_path))
 for (i in 1:length(infiles)) {
@@ -606,8 +606,8 @@ for (i in 1:length(infiles)) {
 # 16S levels: Domain	Phylum	Class	Order	Family Genus	Species
 output_files_path = "../output/DifferentTaxonomicLevels"
 if (!dir.exists(output_files_path)) { dir.create(output_files_path) }
-features_files_path_16S = "../seq_data/combined/16S"
-features_files_path_18S = "../seq_data/combined/18S"
+features_files_path_16S = "../seq_data/16S"
+features_files_path_18S = "../seq_data/18S"
 infiles = sort(c(list.files(features_files_path_16S, pattern="norm_.+tsv$", full.names = TRUE), list.files(features_files_path_18S, pattern="norm_.+tsv$", full.names = TRUE))) # only include files starting with norm_
 infiles = infiles[-grep("_1\\.tsv$", infiles)]
 for (i in 1:length(infiles)) {
