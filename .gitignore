@@ -1,10 +1,9 @@
 # Ignore these directories:
-env_data/
-seq_data/
 plots/
 output/
 RepresentationsFromDeepMicro/
 predictions/
+data/*
 code/.Rhistory
 .DS_Store
 .gitattributes
