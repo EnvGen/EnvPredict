@@ -16,23 +16,33 @@ library(MLmetrics)
 library(scales)
 library(ggpubr)
 library(cowplot)
-library(tools)
+# library(tools)
 library(rstatix)
 ```
 
 # Predictions
 ```{r}
 # Random forest - all taxonomic levels
-RF_dir <- "/Users/emma/Projects/EnvPredict/Predictions/DifferentTaxonomicLevels"
+RF_dir <- "../output/DifferentTaxonomicLevels"
 
-# TabPNF - ASV
-PNF_dir <- "/Users/emma/Projects/EnvPredict/Predictions/TabPNF/DifferentTaxonomicLevels"
+# TabPFN - ASV
+PNF_dir <- "../output/TabPFN"
 
 # Representations from deep micro - ASV
-Deep_dir <- "/Users/emma/Projects/EnvPredict/Predictions/RepresentationsFromDeepMicro_prefilt_features"
+Deep_dir <- "../output/RepresentationsFromDeepMicro_prefilt_features"
 
 # XGBoost - ASV
-XGB_dir <- "/Users/emma/Projects/EnvPredict/Predictions/XGBoost_ASVs"
+XGB_dir <- "../output/XGBoost_ASVs"
+
+# Set a flag for availability of deep representations (not available on GitHub, need to be produced/requested)
+deeprepres = FALSE
+
+## Plot folder
+plot_folder = '../plots/Figure_2/'
+if (!dir.exists(plot_folder)){
+  dir.create(plot_folder)
+}
+
 ```
 
 # Parameters predicted
@@ -117,10 +127,10 @@ RF_table <- left_join(actual_combined, RF_combined,
 head(RF_table)
 ```
 
-## TabPNF, 16S and 18S ASVs
+## TabPFN, 16S and 18S ASVs
 ```{r}
 ## Format colnames = sampleid, rownames = parameter
-## The models are taken from the file names so TabPNF files were renamed to contain "TabPNF" instead of "RF10Fold"
+## The models are taken from the file names so TabPFN files were renamed to contain "TabPFN" instead of "RF10Fold"
 
 # list and read "Actual.tsv" files
 list_actual_files = list.files(PNF_dir, pattern = "Actual.tsv", full.names = TRUE)
@@ -167,7 +177,7 @@ head(PNF_table)
 ```
 
 ## DeepMicro representations, 16S and 18S ASVs
-```{r}
+```{r deeprepresentation, eval=deeprepres}
 ## Format colnames = sampleid, rownames = parameter
 
 # list and read "Actual.tsv" files
@@ -305,11 +315,11 @@ head(all_predictions_corr)
 all_predictions_meta <- all_predictions_corr %>%
   mutate(gene = ifelse(str_detect(model, "18S"), "18S", "16S"))
 
-# Add model to new column for plotting - Random_forest, TabPNF or autoencoder
+# Add model to new column for plotting - Random_forest, TabPFN or autoencoder
 all_predictions_meta <- all_predictions_meta %>%
   mutate(method = case_when(
     str_detect(model, "RF10fold") ~ "Random_forest",
-    str_detect(model, "TabPNF") ~ "TabPNF",
+    str_detect(model, "TabPFN") ~ "TabPFN",
     str_detect(model, "^AE") ~ "AE_encoding",
     str_detect(model, "^CAE") ~ "CAE_encoding",
     str_detect(model, "^DAE") ~ "DAE_encoding",
@@ -443,8 +453,9 @@ ggplot(aes(x = gene, y = r_squared, fill = gene)) +
          y = "R2") +
     facet_wrap(~ parameter, nrow = 1)
 
-Fig2A
-Fig2B
+
+ggsave(Fig2A, filename = paste0(plot_folder,'Fig2A.pdf'))
+ggsave(Fig2B, filename = paste0(plot_folder,'Fig2B.pdf'))
 ```
 
 
@@ -640,7 +651,7 @@ NO3 <- ggplot(data, aes(x = value_actual, y = value_predicted)) +
 
 Fig2C <- cowplot::plot_grid(salinity, NO3, chl, nrow = 1, axis = "bt", align = "hv")
 
-Fig2C
+ggsave(Fig2C, filename = paste0(plot_folder,'Fig2C.pdf'))
 ```
 
 ### Figure 2D - Random forest at different taxonomic levels 
@@ -671,14 +682,14 @@ Fig2D <- all_predictions_meta %>%
     legend.text = element_text(size = 10, colour = "black")
   )
 
-Fig2D
+ggsave(Fig2D, filename = paste0(plot_folder,'Fig2D.pdf'))
 ```
 
 
-### Figure 2E - Box plot, Random forest vs TabPNF vs XGBoost
+### Figure 2E - Box plot, Random forest vs TabPFN vs XGBoost
 ```{r}
 Fig2E <- all_predictions_meta %>%
-  filter(method == "Random_forest" | method == "TabPNF" | method == "XGBoost") %>%
+  filter(method == "Random_forest" | method == "TabPFN" | method == "XGBoost") %>%
   filter(tax_level == "ASV") %>%
   filter(parameter %in% list_of_parameters) %>%
 ggplot(aes(x = method, y = r_squared)) +
@@ -702,7 +713,7 @@ ggplot(aes(x = method, y = r_squared)) +
         legend.position = "bottom") +
   facet_wrap(~ gene, labeller = labeller(gene = gene_labels))
 
-Fig2E
+ggsave(Fig2E, filename = paste0(plot_folder,'Fig2E.pdf'))
 ```
 
 ### Figure 2F - Box plot, Random forest vs encoders
@@ -739,7 +750,8 @@ Fig2F <- all_predictions_meta %>%
     ) +
     facet_wrap(~ gene, labeller = labeller(gene = gene_labels))
 
-Fig2F
+
+ggsave(Fig2F, filename = paste0(plot_folder,'Fig2F.pdf'))
 ```
 
 # Supplementary Figures
@@ -772,5 +784,5 @@ FigS3 <- ggplot(responses_df, aes(x = value)) +
   theme(strip.text = element_text(size = 10)) +
   facet_wrap(~ parameter_n, scales = "free")
 
-FigS3
+ggsave(FigS3, filename = paste0(plot_folder,'FigS3.pdf'))
 ```

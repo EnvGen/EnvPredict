@@ -18,10 +18,7 @@ library(reshape2)
 library(tidyr)
 library(stringr)
 library(MLmetrics)
-library(ComplexHeatmap)
-library(viridis)
 library(scales)
-library(wesanderson)
 ```
 
 
@@ -53,7 +50,7 @@ model_names = str_remove(list_of_true_dfs_name, "_Actual.tsv")
 
 model_names_base = str_remove(model_names, "_2015_2017")
 
-plot_folder = '../output/interannual_comparison_plots/'
+plot_folder = '../plots/interannual_comparison_plots/'
 if (!dir.exists(plot_folder)){
   dir.create(plot_folder)
 }

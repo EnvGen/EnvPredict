@@ -1,4 +1,6 @@
 # Ignore these directories:
+env_files/
+seq_files/
 plots/
 output/
 RepresentationsFromDeepMicro/
@@ -7,6 +9,14 @@ data/*
 code/.Rhistory
 .DS_Store
 .gitattributes
+.snakemake/
+
+#ignore slurm output files
+slurm*.out
+
+# Ignore some automatic R output
+code/Rplots.pdf
+code/interannual_comparison.html
 
 # pixi environments
 .pixi

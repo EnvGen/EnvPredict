@@ -1,37 +1,57 @@
-name: EnvPredict
+name: default
 channels:
-  - conda-forge
-  - anaconda
+- conda-forge
+- anaconda
+- bioconda
+- nodefaults
 dependencies:
-  - r-base=4.2.0
-  - cmake
-  - r-remotes
-  - libgit2
-  - pkg-config
-  - tabpfn=2.0.3
-  - r-tidyverse
-  - r-anytime
-  - r-viridis
-  - r-reshape2
-  - r-vegan
-  - r-ggpubr
-  - r-ape
-  - r-lubridate
-  - r-dplyr
-  - r-plyr
-  - r-svglite
-  - r-gridextra
-  - r-geosphere
-  - r-corrplot
-  - r-ggthemes
-  - r-cowplot
-  - r-data.table
-  - r-mlr
-  - r-tidymodels
-  - r-randomforest
-  - r-xgboost
-  - r-diagrammer
-  - r-ckmeans.1d.dp
-  - r-argparser
-  - r-DiagrammeRsvg
-  - r-rsvg
+- r-base 4.2.0.*
+- cmake *
+- r-remotes *
+- libgit2 *
+- pkg-config *
+- tabpfn ==2.0.3
+- r-tidyverse *
+- r-anytime *
+- r-viridis *
+- r-reshape2 *
+- r-vegan *
+- r-ggpubr *
+- r-ape *
+- r-lubridate *
+- r-dplyr *
+- r-plyr *
+- r-svglite *
+- r-gridextra *
+- r-geosphere *
+- r-corrplot *
+- r-ggthemes *
+- r-cowplot *
+- r-data.table *
+- r-mlr *
+- r-tidymodels *
+- r-randomforest *
+- r-xgboost *
+- r-diagrammer *
+- r-ckmeans.1d.dp *
+- r-argparser *
+- r-diagrammersvg *
+- r-rsvg *
+- r-phangorn >=2.11.1,<3
+- r-ranger >=0.16.0,<0.17
+- r-seqinr >=4.2_36,<5
+- r-caret >=6.0_94,<7
+- graphviz >=7.0.5,<8
+- pandoc >=3.8,<4
+- snakemake >=9.11.6,<10
+- r-purrr >=1.0.2,<2
+- r-mlmetrics >=1.1.3,<2
+- r-scales >=1.3.0,<2
+- r-rstatix >=0.7.2,<0.8
+- pandas >=2.3.2,<3
+- scikit-learn <1.7
+- scipy >=1.16.2,<2
+- numpy >=2.3.3,<3
+- r-tidyr >=1.3.1,<2
+- r-pheatmap >=1.0.12,<2
+

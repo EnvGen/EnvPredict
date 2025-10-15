@@ -1,5 +1,3 @@
-## Load libraries
-
 ## Define margin lines
 par(mgp = c(2.2, 1, 0))
 
@@ -30,7 +28,7 @@ rsquared <- function(predictions, actual) {
 
 ### 1. ML Physchem predictions from either 16S-ASVs or plankton microscopy ###
 
-plot_folder = '../output/plots_microscopy/'
+plot_folder = '../plots/plots_microscopy/'
 if (!dir.exists(plot_folder)){
   dir.create(plot_folder)
 }

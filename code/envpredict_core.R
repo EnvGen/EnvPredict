@@ -16,15 +16,19 @@ library(caret)
 ################
 ## Set files ###
 
-seqtab_file_18S = "../seq_data/18S/filtered_seqtab_18S.tsv" ## count matrix for each ASV & sample
-taxa_file_18S = "../seq_data/18S/filtered_taxa_18S.tsv" ## taxonomic annotation for each ASV
-seqtab_file_18S_with_metazoa = "../seq_data/18S/seqtab_18S.tsv" ## count matrix for each ASV & sample
-taxa_file_18S_with_metazoa = "../seq_data/18S/taxa_18S.tsv" ## taxonomic annotation for each ASV
-seqtab_file_16S = "../seq_data/16S/filtered_seqtab_16S.tsv" ## count matrix for each ASV & sample
-taxa_file_16S =  "../seq_data/16S/filtered_taxa_16S.tsv" ## taxonomic annotation for each ASV
-phys_chem_file = "../env_data/physical_chemical_processed_translation.tsv"
-phyt_plan_file = "../env_data/phytoplankton_processed.tsv"
-zoop_plan_file = "../env_data/zooplankton_processed.tsv"
+seqtab_file_18S = "../seq_files/18S/filtered_seqtab_18S.tsv" ## count matrix for each ASV & sample
+taxa_file_18S = "../seq_files/18S/filtered_taxa_18S.tsv" ## taxonomic annotation for each ASV
+seqtab_file_18S_with_metazoa = "../seq_files/18S/seqtab_18S.tsv" ## count matrix for each ASV & sample
+taxa_file_18S_with_metazoa = "../seq_files/18S/taxa_18S.tsv" ## taxonomic annotation for each ASV
+seqtab_file_16S = "../seq_files/16S/filtered_seqtab_16S.tsv" ## count matrix for each ASV & sample
+taxa_file_16S =  "../seq_files/16S/filtered_taxa_16S.tsv" ## taxonomic annotation for each ASV
+phys_chem_file = "../env_files/physical_chemical_processed_translation.tsv"
+phyt_plan_file = "../env_files/phytoplankton_processed.tsv"
+zoop_plan_file = "../env_files/zooplankton_processed.tsv"
+
+################
+## Set a flag for availability of deep representations (not available on GitHub, need to be produced/requested) ##
+deeprepres = FALSE
 
 #################################
 ### Read and pre-process data ###
@@ -560,8 +564,8 @@ make_scatterplots_actual_vs_predicted <- function(responses_matrix, predicted_re
 # 16S levels: Domain	Phylum	Class	Order	Family Genus	Species
 output_files_path = "../output/DifferentTaxonomicLevels_XGboost"
 if (!dir.exists(output_files_path)) { dir.create(output_files_path) }
-features_files_path_16S = "../seq_data/16S"
-features_files_path_18S = "../seq_data/18S"
+features_files_path_16S = "../seq_files/16S"
+features_files_path_18S = "../seq_files/18S"
 infiles = sort(c(list.files(features_files_path_16S, pattern="norm_.+tsv$", full.names = TRUE), list.files(features_files_path_18S, pattern="norm_.+tsv$", full.names = TRUE))) # only include files starting with norm_
 infiles = infiles[-grep("_1\\.tsv$", infiles)]
 for (i in 1:length(infiles)) {
@@ -581,24 +585,26 @@ for (i in 1:length(infiles)) {
 }
 
 ## 2. Running physiochem predictions on deep feature representation files
-output_files_path = "../output/RepresentationsFromDeepMicro"
-if (!dir.exists(output_files_path)) { dir.create(output_files_path) }
-features_files_path = "../seq_data/RepresentationsFromDeepMicro"
-list.files(features_files_path)
-infiles = sort(list.files(features_files_path))
-for (i in 1:length(infiles)) {
-  outfile_actual = paste(gsub(".csv$","",infiles[i]),"RF10fold_Actual.tsv",sep ="_")
-  outfile_predicted = paste(gsub(".csv$","",infiles[i]),"RF10fold_Predictions.tsv",sep ="_")
-  responses_matrix_full = phys_chem
-  features_matrix_full = as.matrix(read.delim(paste(features_files_path, infiles[i], sep="/"), row.names = 1))
-  features_matrix_full = t(features_matrix_full)
-  features_matrix_full = use_alternative_sample_names(features_matrix_full)
-  features_matrix = extract_shared_samples(features_matrix_full, responses_matrix_full)$features_matrix
-  responses_matrix = extract_shared_samples(features_matrix_full, responses_matrix_full)$responses_matrix
-  #features_matrix = do_feature_selection(features_matrix, 0.1)
-  predicted_responses_matrix = run_randomforest(features_matrix, responses_matrix, 10, 10)
-  write.table(responses_matrix, paste(output_files_path, outfile_actual, sep = "/"), sep="\t")
-  write.table(predicted_responses_matrix, paste(output_files_path, outfile_predicted, sep = "/"), sep="\t")
+if(deeprepres){
+  output_files_path = "../output/RepresentationsFromDeepMicro"
+  if (!dir.exists(output_files_path)) { dir.create(output_files_path) }
+    features_files_path = "../seq_files/RepresentationsFromDeepMicro"
+    list.files(features_files_path)
+    infiles = sort(list.files(features_files_path))
+    for (i in 1:length(infiles)) {
+      outfile_actual = paste(gsub(".csv$","",infiles[i]),"RF10fold_Actual.tsv",sep ="_")
+      outfile_predicted = paste(gsub(".csv$","",infiles[i]),"RF10fold_Predictions.tsv",sep ="_")
+      responses_matrix_full = phys_chem
+      features_matrix_full = as.matrix(read.delim(paste(features_files_path, infiles[i], sep="/"), row.names = 1))
+      features_matrix_full = t(features_matrix_full)
+      features_matrix_full = use_alternative_sample_names(features_matrix_full)
+      features_matrix = extract_shared_samples(features_matrix_full, responses_matrix_full)$features_matrix
+      responses_matrix = extract_shared_samples(features_matrix_full, responses_matrix_full)$responses_matrix
+      #features_matrix = do_feature_selection(features_matrix, 0.1)
+      predicted_responses_matrix = run_randomforest(features_matrix, responses_matrix, 10, 10)
+      write.table(responses_matrix, paste(output_files_path, outfile_actual, sep = "/"), sep="\t")
+      write.table(predicted_responses_matrix, paste(output_files_path, outfile_predicted, sep = "/"), sep="\t")
+    }
 }
 
 ## 3. Running physiochem predictions on seq files for different taxonomic levels
@@ -606,8 +612,8 @@ for (i in 1:length(infiles)) {
 # 16S levels: Domain	Phylum	Class	Order	Family Genus	Species
 output_files_path = "../output/DifferentTaxonomicLevels"
 if (!dir.exists(output_files_path)) { dir.create(output_files_path) }
-features_files_path_16S = "../seq_data/16S"
-features_files_path_18S = "../seq_data/18S"
+features_files_path_16S = "../seq_files/16S"
+features_files_path_18S = "../seq_files/18S"
 infiles = sort(c(list.files(features_files_path_16S, pattern="norm_.+tsv$", full.names = TRUE), list.files(features_files_path_18S, pattern="norm_.+tsv$", full.names = TRUE))) # only include files starting with norm_
 infiles = infiles[-grep("_1\\.tsv$", infiles)]
 for (i in 1:length(infiles)) {
@@ -628,6 +634,7 @@ for (i in 1:length(infiles)) {
 
 ## 4. Running physiochem predictions (Random Forest) on phytoplankton (based on all and based on genera only) and on seq data, using the same set of samples
 output_files_path = "../output/physchem_based_on_seqdata_or_phytoplan"
+if (!dir.exists(output_files_path)) { dir.create(output_files_path) }
 responses_matrix_full = phys_chem
 # based on phyt_plan
 features_matrix_full_1 = phyt_plan
@@ -675,6 +682,7 @@ ncol(responses_matrix) # 328
 
 ## 5. Running physiochem predictions on zooplankton (based on all and based on genera only) and on seq data, using the same set of samples
 output_files_path = "../output/physchem_based_on_seqdata_or_zooplan"
+if (!dir.exists(output_files_path)) { dir.create(output_files_path) }
 responses_matrix_full = phys_chem
 # based on zoo_plan
 features_matrix_full_1 = zoo_plan
@@ -722,6 +730,7 @@ ncol(responses_matrix) # 241
 
 ## 6. Running predictions of phytoplankton genera in microscopy and from 18S data, respectively, using physiochem data
 output_files_path = "../output/phytoplankton_genus_micr_and_18S_based_on_physchem"
+if (!dir.exists(output_files_path)) { dir.create(output_files_path) }
 features_matrix_full = phys_chem
 responses_matrix_full_1 = norm_asv_counts_18S_genus
 responses_matrix_full_2 = phyt_plan_genus

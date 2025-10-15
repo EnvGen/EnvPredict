@@ -13,7 +13,8 @@ import os
 from datetime import datetime
 import math
 from scipy.stats import pearsonr, spearmanr
-import matplotlib.pyplot as plt
+from sklearn.datasets import fetch_openml
+from sklearn.model_selection import train_test_split
 from joblib import Parallel, delayed
 
 # Define functions
@@ -99,30 +100,37 @@ def process_file(infile, alt_ids, RF_output_files_path, output_files_path, num_f
     predicted_responses_matrix.to_csv(os.path.join(output_files_path, outfile_predicted), sep="\t")
 
 # Define the output directory and create it if it doesn't exist
-output_files_path = "../predictions/TabPFN"
-os.makedirs("../TabPFN/", exist_ok=True)
+output_files_path = "../output/TabPFN"
 os.makedirs(output_files_path, exist_ok=True)
 
 ## Define the RF output file folder to get the response variables cut and in proper format
-RF_output_files_path = "../predictions/DifferentTaxonomicLevels"
+RF_output_files_path = "../output/DifferentTaxonomicLevels"
 
 # Define the input directories
-features_files_path_16S = "../seq_data/combined/16S"
-features_files_path_18S = "../seq_data/combined/18S"
+features_files_path_16S = "../seq_files/16S"
+features_files_path_18S = "../seq_files/18S"
 
 # Get the list of input files
 infiles = sorted(
-    [os.path.join(features_files_path_16S, f) for f in os.listdir(features_files_path_16S) if f.startswith("norm_") and f.endswith(".tsv")] +
-    [os.path.join(features_files_path_18S, f) for f in os.listdir(features_files_path_18S) if f.startswith("norm_") and f.endswith(".tsv")]
+    [os.path.join(features_files_path_16S, f) for f in os.listdir(features_files_path_16S) if f.startswith("norm_seqtab") and f.endswith(".tsv")] +
+    [os.path.join(features_files_path_18S, f) for f in os.listdir(features_files_path_18S) if f.startswith("norm_seqtab") and f.endswith(".tsv")]
 )
-infiles = [f for f in infiles if not f.endswith("_1.tsv")]
+# infiles = [f for f in infiles if not f.endswith("_1.tsv")]
 
 # Load the phys_chem data
-phys_chem = pd.read_csv("../env_data/combined/physical_chemical_processed_translation.tsv", delimiter="\t")
+phys_chem = pd.read_csv("../env_files/physical_chemical_processed_translation.tsv", delimiter="\t")
 
 # Load the alternative sample IDs
 alt_ids = pd.DataFrame({'sample_id': phys_chem['sample_id'], 'station_id_date': phys_chem['station_id_date']})
 
+## Call the model on irrelevant to secure checkopoints (common bug fix)
 
-# Parallelize the processing of input files
-Parallel(n_jobs=os.cpu_count())(delayed(process_file)(infile, alt_ids, RF_output_files_path, output_files_path) for infile in infiles)
+df = fetch_openml(data_id=531, as_frame=True)  # Boston Housing dataset
+X = df.data
+y = df.target.astype(float)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.5, random_state=42)
+regressor = TabPFNRegressor()
+regressor.fit(X_train, y_train)
+
+## Parallelize the processing of input files
+Parallel(n_jobs=2)(delayed(process_file)(infile, alt_ids, RF_output_files_path, output_files_path) for infile in infiles)
