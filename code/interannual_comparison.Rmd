@@ -52,7 +52,7 @@ model_names_base = str_remove(model_names, "_2015_2017")
 
 plot_folder = '../plots/interannual_comparison_plots/'
 if (!dir.exists(plot_folder)){
-  dir.create(plot_folder)
+  dir.create(plot_folder, recursive = TRUE)
 }
 ```
 
@@ -113,17 +113,31 @@ for(parameter in list_of_parameters){
     next
   }
   
+    
+  
+  correlation = rsquared(data$predictions, data$true_values)
+  
   # png(paste0(plot_subfolder, parameter, ".png"), width = 800, height = 800)
   pdf(paste0(plot_subfolder, parameter, ".pdf"), width = 6, height = 6)
   
   plot(data$true_values, data$predictions, xlab = 'Data', ylab = 'Predictions', main = parameter,
        bg = alpha('#edf8b1', 0.5), pch = 21,
+       cex.lab = 2, cex.main = 2.3, cex.axis = 1.7,
        xlim = c(min(data),max(data)), ylim = c(min(data),max(data)))
   lines(c(0,max(data)), c(0,max(data)))
-  dev.off()
   
-  # correlation = cor(data$predictions, data$true_values)
-  correlation = rsquared(data$predictions, data$true_values)
+  # Add the R-squared value as text in the top-left corner
+  text(x = min(data$true_values, data$predictions),
+       y = max(data$true_values, data$predictions),
+       labels = paste0("R² = ", format(correlation, digits = 3)),
+       pos = 4,  # Position the text to the right of the point
+       cex = 1.8,  # Adjust text size
+       col = "black")
+
+  
+  
+  dev.off()
+
   
   cor_values = c(cor_values, correlation)
   names(cor_values)[length(cor_values)] = parameter
@@ -162,15 +176,25 @@ for(parameter in list_of_parameters){
     next
   }
   
+  correlation = rsquared(data$predictions, data$true_values)
+  
   pdf(paste0(plot_subfolder, parameter, ".pdf"), width = 6, height = 6)
   
   plot(data$true_values, data$predictions, xlab = 'Data', ylab = 'Predictions', main = parameter,
        bg = alpha('#2c7fb8', 0.5), pch = 21,
+       cex.lab = 2, cex.main = 2.3, cex.axis = 1.7,
        xlim = c(min(data),max(data)), ylim = c(min(data),max(data)))
   lines(c(0,max(data)), c(0,max(data)))
-  dev.off()
   
-  correlation = rsquared(data$predictions, data$true_values)
+    # Add the R-squared value as text in the top-left corner
+  text(x = min(data$true_values, data$predictions),
+       y = max(data$true_values, data$predictions),
+       labels = paste0("R² = ", format(correlation, digits = 3)),
+       pos = 4,  # Position the text to the right of the point
+       cex = 1.8,  # Adjust text size
+       col = "black")
+  
+  dev.off()
   
   cor_values_both_datasets = c(cor_values_both_datasets, correlation)
   names(cor_values_both_datasets)[length(cor_values_both_datasets)] = parameter
@@ -209,16 +233,26 @@ for(parameter in list_of_parameters){
     next
   }
   
+  correlation = rsquared(data$predictions, data$true_values)
   # png(paste0(plot_subfolder, parameter, ".png"), width = 800, height = 800)
   pdf(paste0(plot_subfolder, parameter, ".pdf"), width = 6, height = 6)
   
   plot(data$true_values, data$predictions, xlab = 'Data', ylab = 'Predictions', main = parameter,
        bg = alpha('#7fcdbb', 0.5), pch = 21,
+       cex.lab = 2, cex.main = 2.3, cex.axis = 1.7,
        xlim = c(min(data),max(data)), ylim = c(min(data),max(data)))
   lines(c(0,max(data)), c(0,max(data)))
-  dev.off()
   
-  correlation = rsquared(data$predictions, data$true_values)
+  
+    # Add the R-squared value as text in the top-left corner
+  text(x = min(data$true_values, data$predictions),
+       y = max(data$true_values, data$predictions),
+       labels = paste0("R² = ", format(correlation, digits = 3)),
+       pos = 4,  # Position the text to the right of the point
+       cex = 1.8,  # Adjust text size
+       col = "black")
+  
+  dev.off()
   
   cor_values_same_dataset = c(cor_values_same_dataset, correlation)
   names(cor_values_same_dataset)[length(cor_values_same_dataset)] = parameter
