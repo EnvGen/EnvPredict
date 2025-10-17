@@ -17,6 +17,7 @@ slurm*.out
 # Ignore some automatic R output
 code/Rplots.pdf
 code/interannual_comparison.html
+code/Plot_Figure_2.html
 
 # pixi environments
 .pixi

@@ -1,7 +1,7 @@
 
 rule all:
     input:
-        "plots/Figure_2/FigS3.pdf",
+        "plots/Figure_2/FigS1.pdf",
         "plots/plots_microscopy/predicting_zooplankton.pdf",
         "plots/interannual_comparison_plots/phys_chem_interannual_comparison.pdf"
 
@@ -42,7 +42,7 @@ rule Fig2:
         "output/DifferentTaxonomicLevels/norm_clade_counts_16S_2_RF10fold_Predictions.tsv",
         "output/TabPFN/norm_clade_counts_16S_2_RF10fold_Predictions.tsv"
     output:
-        "plots/Figure_2/FigS3.pdf"
+        "plots/Figure_2/FigS1.pdf"
     shell:
         """
         cd code && Rscript --verbose -e "rmarkdown::render('Plot_Figure_2.Rmd')"
