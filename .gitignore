@@ -21,6 +21,6 @@ code/Plot_Figure_2.html
 
 # pixi environments
 .pixi
-pixi.toml
+/pixi.toml
 pixi.lock
 *.egg-info

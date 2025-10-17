@@ -1,16 +1,7 @@
 #!/bin/bash -l
 
-#SBATCH -A naiss2025-5-219
-#SBATCH -p shared
-#SBATCH --nodes=1
-#SBATCH --ntasks-per-node=128
-#SBATCH --mail-type=ALL
-#SBATCH --mail-user=krzysztof.jurdzins@scilifelab.se
-#SBATCH -t 4:00:00
-#SBATCH -J EnvPredict
-
-# unzip data/seq_files.zip
-# unzip data/env_files.zip
+unzip data/seq_files.zip
+unzip data/env_files.zip
 
 snakemake --rerun-incomplete --cores all --unlock
 snakemake --dag --cores all | dot -Tpng > dag.png
