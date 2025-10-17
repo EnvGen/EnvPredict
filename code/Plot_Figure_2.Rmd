@@ -32,7 +32,7 @@ PFN_dir <- "../output/TabPFN"
 Deep_dir <- "../output/RepresentationsFromDeepMicro_prefilt_features"
 
 # XGBoost - ASV
-XGB_dir <- "../output/XGBoost_ASVs"
+XGB_dir <- "../output/DifferentTaxonomicLevels_XGboost"
 
 # Set a flag for availability of deep representations (not available on GitHub, need to be produced/requested)
 deeprepres = FALSE
@@ -133,12 +133,12 @@ head(RF_table)
 ## The models are taken from the file names so TabPFN files were renamed to contain "TabPFN" instead of "RF10Fold"
 
 # list and read "Actual.tsv" files
-list_actual_files = list.files(PFN_dir, pattern = "Actual.tsv", full.names = TRUE)
+list_actual_files = list.files(RF_dir, pattern = "Actual.tsv", full.names = TRUE)
 list_actual_dfs = lapply(list_actual_files, read.delim)
 
 # list and read RF "Predictions.tsv" files
 list_PFN_files = list.files(PFN_dir, pattern = "Predictions.tsv", full.names = TRUE)
-list_PFN_dfs = lapply(list_PFN_files, read.delim)
+list_PFN_dfs = lapply(list_PFN_files, read.delim, row.names = 1)
 
 # Apply the function to all "Actual.tsv" dataframes, adding file names
 actual_dfs <- mapply(convert_table_long, list_actual_dfs, list_actual_files, SIMPLIFY = FALSE)
@@ -233,11 +233,11 @@ head(deep_table)
 ## Format colnames = sampleid, rownames = parameter
 
 # list and read "Actual.tsv" files
-list_actual_files = list.files(XGB_dir, pattern = "Actual.tsv", full.names = TRUE)
+list_actual_files = list.files(XGB_dir, pattern = "norm_seqtab_.+_Actual.tsv", full.names = TRUE)
 list_actual_dfs = lapply(list_actual_files, read.delim)
 
 # list and read RF "Predictions.tsv" files
-list_XGB_files = list.files(XGB_dir, pattern = "Predictions.tsv", full.names = TRUE)
+list_XGB_files = list.files(XGB_dir, pattern = "norm_seqtab_.+_Predictions.tsv", full.names = TRUE)
 list_XGB_dfs = lapply(list_XGB_files, read.delim)
 
 # Apply the function to all "Actual.tsv" dataframes, adding file names
@@ -284,7 +284,12 @@ head(XGB_table)
 ## All data
 ```{r}
 # Combine all results
-all_predictions <- bind_rows(RF_table, PFN_table, deep_table, XGB_table)
+if(deeprepres){
+  all_predictions <- bind_rows(RF_table, PFN_table, deep_table, XGB_table)
+}else{
+  all_predictions <- bind_rows(RF_table, PFN_table, XGB_table)
+}
+
 ```
 
 
@@ -726,7 +731,7 @@ Fig2F <- all_predictions_meta %>%
     filter(parameter %in% list_of_parameters) %>%
     group_by(method, parameter, gene) %>%
     slice_max(r_squared, n = 1, with_ties = FALSE) %>%
-    mutate(method = factor(method, levels = fig4b_order)) %>%
+    mutate(method = factor(method, levels = Fig2F_order)) %>%
   ggplot(aes(x = method, y = Pearson_corr)) +
     geom_boxplot(outliers = FALSE) +
     geom_point(aes(color = parameter, shape = parameter), alpha = 1, size = 3) +
@@ -755,10 +760,12 @@ ggsave(Fig2F, filename = paste0(plot_folder,'Fig2F.pdf'))
 ```
 
 # Supplementary Figures
-#### Figure S3 - Histogram of input data
+#### Figure S1 - Histogram of input data
 ```{r}
 # All parameters
 all_parameters <- c("Longitude", "Latitude", "Salinity", "Temperature", "pH", "Alkalinity", "Secchi_depth", "SiO3", "N_tot", "DIN", "NH4", "NO2", "NO3", "NO3_NO2", "P_tot", "Phosphate", "DOC", "Humus", "Chl")
+
+responses_matrix <- list_actual_dfs[1]
 
 # Join performance data (R2) to long data by Parameter
 responses_df <- responses_matrix %>%
@@ -775,7 +782,7 @@ responses_df <- responses_df %>%
   ungroup()
 
 # Plot histograms
-FigS3 <- ggplot(responses_df, aes(x = value)) +
+FigS1 <- ggplot(responses_df, aes(x = value)) +
   geom_histogram(bins = 20, fill = "skyblue", color = "black") +
   theme_minimal() +
   labs(title = "Physicochemical data",
@@ -784,5 +791,5 @@ FigS3 <- ggplot(responses_df, aes(x = value)) +
   theme(strip.text = element_text(size = 10)) +
   facet_wrap(~ parameter_n, scales = "free")
 
-ggsave(FigS3, filename = paste0(plot_folder,'FigS3.pdf'))
+ggsave(FigS1, filename = paste0(plot_folder,'FigS1.pdf'))
 ```
