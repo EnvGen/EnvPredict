@@ -2,7 +2,7 @@
 rule all:
     input:
         "plots/Figure_2/FigS3.pdf",
-        "output/plots_microscopy/predicting_zooplankton.pdf",
+        "plots/plots_microscopy/predicting_zooplankton.pdf",
         "plots/interannual_comparison_plots/phys_chem_interannual_comparison.pdf"
 
 rule core:
@@ -52,7 +52,7 @@ rule Fig34:
     input:
         "output/zooplankton_predicted/norm_asv_counts_16S_zoo_plan_genus_RF10fold_Predictions.tsv"
     output:
-        "output/plots_microscopy/predicting_zooplankton.pdf"
+        "plots/plots_microscopy/predicting_zooplankton.pdf"
     shell:
         """
         cd code && Rscript --verbose envpredict_eval.R

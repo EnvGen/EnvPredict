@@ -1,13 +1,12 @@
 #!/bin/bash -l
 
 #SBATCH -A naiss2025-5-219
-#SBATCH -p memory
+#SBATCH -p shared
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=128
-#SBATCH --mem=880GB
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=krzysztof.jurdzins@scilifelab.se
-#SBATCH -t 4-00:00:00
+#SBATCH -t 4:00:00
 #SBATCH -J EnvPredict
 
 # unzip data/seq_files.zip

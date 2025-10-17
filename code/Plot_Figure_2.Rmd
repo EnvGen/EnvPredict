@@ -16,7 +16,7 @@ library(MLmetrics)
 library(scales)
 library(ggpubr)
 library(cowplot)
-# library(tools)
+library(tools)
 library(rstatix)
 ```
 
@@ -26,7 +26,7 @@ library(rstatix)
 RF_dir <- "../output/DifferentTaxonomicLevels"
 
 # TabPFN - ASV
-PNF_dir <- "../output/TabPFN"
+PFN_dir <- "../output/TabPFN"
 
 # Representations from deep micro - ASV
 Deep_dir <- "../output/RepresentationsFromDeepMicro_prefilt_features"
@@ -133,23 +133,23 @@ head(RF_table)
 ## The models are taken from the file names so TabPFN files were renamed to contain "TabPFN" instead of "RF10Fold"
 
 # list and read "Actual.tsv" files
-list_actual_files = list.files(PNF_dir, pattern = "Actual.tsv", full.names = TRUE)
+list_actual_files = list.files(PFN_dir, pattern = "Actual.tsv", full.names = TRUE)
 list_actual_dfs = lapply(list_actual_files, read.delim)
 
 # list and read RF "Predictions.tsv" files
-list_PNF_files = list.files(PNF_dir, pattern = "Predictions.tsv", full.names = TRUE)
-list_PNF_dfs = lapply(list_PNF_files, read.delim)
+list_PFN_files = list.files(PFN_dir, pattern = "Predictions.tsv", full.names = TRUE)
+list_PFN_dfs = lapply(list_PFN_files, read.delim)
 
 # Apply the function to all "Actual.tsv" dataframes, adding file names
 actual_dfs <- mapply(convert_table_long, list_actual_dfs, list_actual_files, SIMPLIFY = FALSE)
 
 # Apply the function to all "Predictions.tsv" dataframes, adding file names
-PNF_dfs <- mapply(convert_table_long, list_PNF_dfs, list_PNF_files, SIMPLIFY = FALSE)
+PFN_dfs <- mapply(convert_table_long, list_PFN_dfs, list_PFN_files, SIMPLIFY = FALSE)
 
 # Check sample IDs in predictions vs actual match
 identical(
   actual_dfs[[1]] %>% select(sample_id) %>% pull(),
-  PNF_dfs[[1]] %>% select(sample_id) %>% pull()
+  PFN_dfs[[1]] %>% select(sample_id) %>% pull()
 )
 
 # View an example dataframe
@@ -162,18 +162,18 @@ actual_combined <- actual_combined %>%
   mutate(model = str_remove(source_file, "_Actual"))
 
 # Combine all RF predictions into one dataframe
-PNF_combined <- bind_rows(PNF_dfs)
+PFN_combined <- bind_rows(PFN_dfs)
 
-PNF_combined <- PNF_combined %>% 
+PFN_combined <- PFN_combined %>% 
   mutate(model = str_remove(source_file, "_Predictions"))
 
 # Merge actual and RF prediction tables by "sample_id" and "variable"
-PNF_table <- left_join(actual_combined, PNF_combined, 
+PFN_table <- left_join(actual_combined, PFN_combined, 
                        by = c("sample_id", "parameter", "model"),
                        suffix = c("_actual", "_predicted"))
 
 # View the combined table
-head(PNF_table)
+head(PFN_table)
 ```
 
 ## DeepMicro representations, 16S and 18S ASVs
@@ -284,7 +284,7 @@ head(XGB_table)
 ## All data
 ```{r}
 # Combine all results
-all_predictions <- bind_rows(RF_table, PNF_table, deep_table, XGB_table)
+all_predictions <- bind_rows(RF_table, PFN_table, deep_table, XGB_table)
 ```
 
 
