@@ -1,0 +1,239 @@
+---
+title: "Evaluation of cross-dataset predicitons, linear regression"
+author: "Krzysztof Jurdzinski"
+date: "2025-07-15"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+
+```{r packages, include=FALSE}
+library(dplyr)
+library(ggplot2)
+library(reshape2)
+library(tidyr)
+library(stringr)
+library(MLmetrics)
+library(ComplexHeatmap)
+library(viridis)
+library(scales)
+library(wesanderson)
+```
+
+
+## Define and load infiles, define outfiles
+
+```{r read_files}
+base_path = "../output/predict_2015_2017/"
+
+# list and read "Predictions.tsv" files
+list_of_prediction_dfs_name = list.files(base_path, pattern = "Predictions.tsv", full.names = TRUE)
+list_of_prediction_dfs = lapply(list_of_prediction_dfs_name, read.delim)
+
+# rename the columns
+for (i in 1:length(list_of_prediction_dfs)){
+  colnames(list_of_prediction_dfs[[i]]) <- str_remove(colnames(list_of_prediction_dfs[[i]]), "Predicted_")
+}
+
+list_of_parameters = colnames(list_of_prediction_dfs[[i]])
+list_of_parameters = list_of_parameters[!list_of_parameters %in% c("sample_id")]
+
+# list and read "Actual_values.tsv" files
+list_of_true_dfs_name = list.files(base_path, pattern = "Actual.tsv", full.names = TRUE)
+# read the files
+list_of_true_dfs = lapply(list_of_true_dfs_name, read.delim)
+
+# list of model names
+list_of_true_dfs_name = list.files(base_path, pattern = "Actual.tsv", full.names = FALSE)
+model_names = str_remove(list_of_true_dfs_name, "_Actual.tsv")
+
+model_names_base = str_remove(model_names, "_2015_2017")
+
+plot_folder = '../output/interannual_comparison_plots/'
+if (!dir.exists(plot_folder)){
+  dir.create(plot_folder)
+}
+```
+
+Compare actual phys_chem values 2015-2017 predicted 
+
+```{r}
+predictions = list_of_prediction_dfs[[which(model_names == 'norm_asv_counts_16S_phys_chem_2015_2017_different_years')]]
+true_values = list_of_true_dfs[[which(model_names == 'norm_asv_counts_16S_phys_chem_2015_2017_different_years')]]
+
+list_of_parameters = rownames(predictions)
+
+identical(colnames(predictions), colnames(true_values))
+
+cor_values = c()
+
+plot_subfolder = paste0(plot_folder, "different_dataset/")
+if (!dir.exists(plot_subfolder)){
+  dir.create(plot_subfolder)
+}
+
+for(parameter in list_of_parameters){
+    
+  
+  data = data.frame(true_values = unlist(true_values[parameter,]), predictions = unlist(predictions[parameter,]))
+  data = data[complete.cases(data),]
+  
+  if(nrow(data) == 0){
+    next
+  }
+  
+  # correlation = cor(data$predictions, data$true_values)
+  correlation = round(summary(lm(data$predictions ~ data$true_values))$r.squared, 3)
+  
+  cor_values = c(cor_values, correlation)
+  names(cor_values)[length(cor_values)] = parameter
+}
+
+sort(cor_values)
+
+```
+
+Get the correlations for the 16S ASV based CV predictions
+
+```{r}
+predictions = list_of_prediction_dfs[[which(model_names == 'norm_asv_counts_16S_phys_chem_2015_2017_both_years')]]
+true_values = list_of_true_dfs[[which(model_names == 'norm_asv_counts_16S_phys_chem_2015_2017_both_years')]]
+
+list_of_parameters = rownames(predictions)
+
+true_values = true_values[,colnames(predictions)]
+
+identical(colnames(predictions), colnames(true_values))
+
+cor_values_both_datasets = c()
+
+for(parameter in list_of_parameters){
+  
+  
+  data = data.frame(true_values = unlist(true_values[parameter,]), predictions = unlist(predictions[parameter,]))
+  data = data[complete.cases(data),]
+  
+  if(nrow(data) == 0){
+    next
+  }
+  
+  correlation = round(summary(lm(data$predictions ~ data$true_values))$r.squared, 3)
+  
+  cor_values_both_datasets = c(cor_values_both_datasets, correlation)
+  names(cor_values_both_datasets)[length(cor_values_both_datasets)] = parameter
+}
+
+sort(cor_values_both_datasets)
+
+```
+Get the correlations for the 16S ASV based CV predictions: 2019-2020 training and testing data
+
+```{r}
+predictions = list_of_prediction_dfs[[which(model_names == 'norm_asv_counts_16S_phys_chem_2015_2017_same_year')]]
+true_values = list_of_true_dfs[[which(model_names == 'norm_asv_counts_16S_phys_chem_2015_2017_same_year')]]
+
+list_of_parameters = rownames(predictions)
+
+true_values = true_values[,colnames(predictions)]
+
+identical(colnames(predictions), colnames(true_values))
+
+cor_values_same_dataset = c()
+
+
+for(parameter in list_of_parameters){
+  
+  
+  data = data.frame(predictions = unlist(predictions[parameter,]), true_values = unlist(true_values[parameter,]))
+  data = data[complete.cases(data),]
+  
+  if(nrow(data) == 0){
+    next
+  }
+  
+  correlation = round(summary(lm(data$predictions ~ data$true_values))$r.squared, 3)
+  
+  cor_values_same_dataset = c(cor_values_same_dataset, correlation)
+  names(cor_values_same_dataset)[length(cor_values_same_dataset)] = parameter
+}
+
+sort(cor_values_same_dataset)
+
+```
+
+
+## Compare the values between the different_dataset and the cv prediction
+
+```{r}
+cor_df = data.frame(parameter = names(cor_values), both_datasets = cor_values_both_datasets, same_dataset = cor_values_same_dataset, different_dataset = cor_values)
+
+ix = which(cor_df$parameter == 'Longitude')
+
+cor_df = cor_df[ix:nrow(cor_df),]
+
+cor_df = cor_df[complete.cases(cor_df),]
+
+pdf(paste0(plot_folder, "phys_chem_interannual_comparison.pdf"))
+
+layout(matrix(c(1,2,1,3), 2, 2, byrow = T))
+
+group_colors <- c('#edf8b1', '#7fcdbb', '#2c7fb8')
+names(group_colors) <- c('Different dataset', 'Same dataset', 'Both datasets')
+
+par(mar = c(4,10,2,2), xpd = T)
+barplot(as.matrix(t(cor_df[,c(2,3,4)])), beside = T, horiz = T, las = 1, cex.names = 0.8,
+        ## Make it list all the names
+        names.arg = cor_df$parameter,
+        xlab = expression(paste("Coefficient of determination (", R^2, ")")),
+        xlim = c(0,1), col = rev(group_colors)
+        ## Move legend
+         # legend = T, args.legend = list(x = "topleft", inset = c(-1,0))
+        )
+legend("topleft", inset = c(-0.4, 0),
+       legend = c('Different dataset', "Same dataset", "Both dataset"),
+       fill = group_colors,
+       title = "Model trained on:")
+par(mar = c(6,4,2,2))
+boxplot(cor_df$different_dataset, cor_df$same_dataset, cor_df$both_datasets,  names = c('Different dataset', "Same dataset", "Both datasets"), las = 2, col = group_colors, ylim = c(0,1),
+        ylab = expression(paste("Coefficient of determination (", R^2, ")")))
+par(mar = c(4,4,2,2))
+plot(cor_df$different_dataset, cor_df$same_dataset, xlab = 'Different dataset', ylab = 'Same datasets', main = 'Different dataset vs both datasets correlation coefficients',
+     col = '#378a76ff', bg = group_colors[1], pch = 21,
+     ## Add an identity line
+     xlim = c(0,1), ylim = c(0,1))
+lines(c(0,1), c(0,1))
+dev.off()
+
+wilcox.test(cor_df$different_dataset, cor_df$same_dataset, paired = T)
+median(cor_df$same_dataset) - median(cor_df$different_dataset)
+
+wilcox.test(cor_df$different_dataset, cor_df$both_datasets, paired = T)
+median(cor_df$both_datasets) - median(cor_df$different_dataset)
+
+wilcox.test(cor_df$both_datasets, cor_df$same_dataset, paired = T)
+median(cor_df$both_datasets) - median(cor_df$same_dataset)
+
+## Get only rows in which max R^2 is larger than 0.8
+ix = which(apply(cor_df[,c(3,4)], 1, max) > 0.8)
+
+wilcox.test(cor_df$same_dataset[ix], cor_df$different_dataset[ix], paired = T)
+median(cor_df$same_dataset[ix]) - median(cor_df$different_dataset[ix])
+
+```
+Check for which parameters using both datasets is not the best strategy
+
+```{r}
+ix = which(cor_df$both_datasets < cor_df$same_dataset & cor_df$both_datasets < cor_df$different_dataset)
+
+both_worst = cor_df[ix,]
+
+ix = which(cor_df$both_datasets < cor_df$same_dataset)
+
+both_worse_than_same = cor_df[ix,]
+```
+
