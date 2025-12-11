@@ -12,6 +12,37 @@ library(rsample)
 library(stringi)
 library(lubridate)
 library(caret)
+library(argparser)
+
+### Get the arguments ###
+
+parse_bool <- function(x) {
+  if (is.logical(x)) return(x)
+  s <- tolower(as.character(x))
+  if (s %in% c("true", "True", "t", "1", "yes", "y", "TRUE")) return(TRUE)
+  if (s %in% c("false", "False", "f", "0", "no", "n", "FALSE")) return(FALSE)
+  stop("Invalid boolean value: '", x, "'. Use true/false (or 1/0/yes/no).")
+}
+
+p <- arg_parser("Script options")
+p <- add_argument(
+  p,
+  "--if_XGBoost",
+  help = "Whether to run plots for XGBoost predictions (true/false).",
+  type = "character",
+  default = "false"
+)
+p <- add_argument(
+  p,
+  "--if_deeprepres",
+  help = "Whether to run plots for XGBoost predictions (true/false).",
+  type = "character",
+  default = "false"
+)
+
+args <- parse_args(p)
+if_XGBoost <- parse_bool(args$if_XGBoost)
+if_deeprepres <- parse_bool(args$if_deeprepres)
 
 ################
 ## Set files ###
@@ -25,10 +56,6 @@ taxa_file_16S =  "../seq_files/16S/filtered_taxa_16S.tsv" ## taxonomic annotatio
 phys_chem_file = "../env_files/physical_chemical_processed_translation.tsv"
 phyt_plan_file = "../env_files/phytoplankton_processed.tsv"
 zoop_plan_file = "../env_files/zooplankton_processed.tsv"
-
-################
-## Set a flag for availability of deep representations (not available on GitHub, need to be produced/requested) ##
-deeprepres = FALSE
 
 #################################
 ### Read and pre-process data ###
@@ -562,32 +589,33 @@ make_scatterplots_actual_vs_predicted <- function(responses_matrix, predicted_re
 ## 1. Running physiochem predictions on seq files for different taxonomic levels, using XGboost
 # 18S levels: Domain	Supergroup	Division	Subdivision	Class	Order	Family	Genus	Species
 # 16S levels: Domain	Phylum	Class	Order	Family Genus	Species
-output_files_path = "../output/DifferentTaxonomicLevels_XGboost"
-if (!dir.exists(output_files_path)) { dir.create(output_files_path) }
-features_files_path_16S = "../seq_files/16S"
-features_files_path_18S = "../seq_files/18S"
-infiles = sort(c(list.files(features_files_path_16S, pattern="norm_.+tsv$", full.names = TRUE), list.files(features_files_path_18S, pattern="norm_.+tsv$", full.names = TRUE))) # only include files starting with norm_
-infiles = infiles[-grep("_1\\.tsv$", infiles)]
-for (i in 1:length(infiles)) {
-  outfile_actual = gsub(".tsv$","_xgb10fold_Actual.tsv",basename(infiles[i]))
-  outfile_predicted = gsub(".tsv$","_xgb10fold_Predictions.tsv",basename(infiles[i]))
-  responses_matrix_full = phys_chem
-  features_matrix_full = as.matrix(read.delim(infiles[i], row.names = 1))
-  colnames(features_matrix_full) = gsub("^X", "", colnames(features_matrix_full))
-  #features_matrix_full = t(features_matrix_full)
-  features_matrix_full = use_alternative_sample_names(features_matrix_full)
-  features_matrix = extract_shared_samples(features_matrix_full, responses_matrix_full)$features_matrix
-  responses_matrix = extract_shared_samples(features_matrix_full, responses_matrix_full)$responses_matrix
-  features_matrix = do_feature_selection(features_matrix, 0.1)
-  predicted_responses_matrix = run_xgboost_caret(features_matrix, responses_matrix, numfolds_outer = 10, numfolds_inner = 5, min_samples = 10)
-  write.table(responses_matrix, paste(output_files_path, outfile_actual, sep = "/"), sep="\t")
-  write.table(predicted_responses_matrix, paste(output_files_path, outfile_predicted, sep = "/"), sep="\t")
-}
-
-## 2. Running physiochem predictions on deep feature representation files
-if(deeprepres){
-  output_files_path = "../output/RepresentationsFromDeepMicro"
+if(if_XGBoost){
+  output_files_path = "../output/DifferentTaxonomicLevels_XGboost"
   if (!dir.exists(output_files_path)) { dir.create(output_files_path) }
+  features_files_path_16S = "../seq_files/16S"
+  features_files_path_18S = "../seq_files/18S"
+  infiles = sort(c(list.files(features_files_path_16S, pattern="norm_.+tsv$", full.names = TRUE), list.files(features_files_path_18S, pattern="norm_.+tsv$", full.names = TRUE))) # only include files starting with norm_
+  infiles = infiles[-grep("_1\\.tsv$", infiles)]
+  for (i in 1:length(infiles)) {
+    outfile_actual = gsub(".tsv$","_xgb10fold_Actual.tsv",basename(infiles[i]))
+    outfile_predicted = gsub(".tsv$","_xgb10fold_Predictions.tsv",basename(infiles[i]))
+    responses_matrix_full = phys_chem
+    features_matrix_full = as.matrix(read.delim(infiles[i], row.names = 1))
+    colnames(features_matrix_full) = gsub("^X", "", colnames(features_matrix_full))
+    #features_matrix_full = t(features_matrix_full)
+    features_matrix_full = use_alternative_sample_names(features_matrix_full)
+    features_matrix = extract_shared_samples(features_matrix_full, responses_matrix_full)$features_matrix
+    responses_matrix = extract_shared_samples(features_matrix_full, responses_matrix_full)$responses_matrix
+    features_matrix = do_feature_selection(features_matrix, 0.1)
+    predicted_responses_matrix = run_xgboost_caret(features_matrix, responses_matrix, numfolds_outer = 10, numfolds_inner = 5, min_samples = 10)
+    write.table(responses_matrix, paste(output_files_path, outfile_actual, sep = "/"), sep="\t")
+    write.table(predicted_responses_matrix, paste(output_files_path, outfile_predicted, sep = "/"), sep="\t")
+  }
+}  
+## 2. Running physiochem predictions on deep feature representation files
+if(if_deeprepres){
+    output_files_path = "../output/RepresentationsFromDeepMicro"
+    if (!dir.exists(output_files_path)) { dir.create(output_files_path) }
     features_files_path = "../seq_files/RepresentationsFromDeepMicro"
     list.files(features_files_path)
     infiles = sort(list.files(features_files_path))
@@ -604,8 +632,9 @@ if(deeprepres){
       predicted_responses_matrix = run_randomforest(features_matrix, responses_matrix, 10, 10)
       write.table(responses_matrix, paste(output_files_path, outfile_actual, sep = "/"), sep="\t")
       write.table(predicted_responses_matrix, paste(output_files_path, outfile_predicted, sep = "/"), sep="\t")
-    }
+  }
 }
+
 
 ## 3. Running physiochem predictions on seq files for different taxonomic levels
 # 18S levels: Domain	Supergroup	Division	Subdivision	Class	Order	Family	Genus	Species

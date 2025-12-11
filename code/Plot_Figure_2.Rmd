@@ -18,7 +18,48 @@ library(ggpubr)
 library(cowplot)
 library(tools)
 library(rstatix)
+library(argparser)
 ```
+## Read arguments from argparesr
+```{r argparser}
+
+parse_bool <- function(x) {
+  if (is.logical(x)) return(x)
+  s <- tolower(as.character(x))
+  if (s %in% c("true", "True", "t", "1", "yes", "y", "TRUE")) return(TRUE)
+  if (s %in% c("false", "False", "f", "0", "no", "n", "FALSE")) return(FALSE)
+  stop("Invalid boolean value: '", x, "'. Use true/false (or 1/0/yes/no).")
+}
+
+p <- arg_parser("Script options")
+p <- add_argument(
+  p,
+  "--if_XGBoost",
+  help = "Whether to run plots for XGBoost predictions (true/false).",
+  type = "character",
+  default = "false"
+)
+p <- add_argument(
+  p,
+  "--if_TabPFN",
+  help = "Whether to run plots for XGBoost predictions (true/false).",
+  type = "character",
+  default = "false"
+)
+p <- add_argument(
+  p,
+  "--if_deeprepres",
+  help = "Whether to run plots for XGBoost predictions (true/false).",
+  type = "character",
+  default = "false"
+)
+
+args <- parse_args(p)
+if_XGBoost <- parse_bool(args$if_XGBoost)
+if_TabPFN <- parse_bool(args$if_TabPFN)
+if_deeprepres <- parse_bool(args$if_deeprepres)
+```
+
 
 # Predictions
 ```{r}
@@ -33,9 +74,6 @@ Deep_dir <- "../output/RepresentationsFromDeepMicro_prefilt_features"
 
 # XGBoost - ASV
 XGB_dir <- "../output/DifferentTaxonomicLevels_XGboost"
-
-# Set a flag for availability of deep representations (not available on GitHub, need to be produced/requested)
-deeprepres = FALSE
 
 ## Plot folder
 plot_folder = '../plots/Figure_2/'
@@ -177,7 +215,7 @@ head(PFN_table)
 ```
 
 ## DeepMicro representations, 16S and 18S ASVs
-```{r deeprepresentation, eval=deeprepres}
+```{r deeprepresentation, eval=if_deeprepres}
 ## Format colnames = sampleid, rownames = parameter
 
 # list and read "Actual.tsv" files
@@ -229,7 +267,7 @@ head(deep_table)
 ```
 
 ## XGBoost, 16S and 18S ASVs
-```{r}
+```{r, eval=if_XGBoost}
 ## Format colnames = sampleid, rownames = parameter
 
 # list and read "Actual.tsv" files
@@ -284,10 +322,17 @@ head(XGB_table)
 ## All data
 ```{r}
 # Combine all results
-if(deeprepres){
-  all_predictions <- bind_rows(RF_table, PFN_table, deep_table, XGB_table)
-}else{
-  all_predictions <- bind_rows(RF_table, PFN_table, XGB_table)
+all_predictions <- RF_table
+if(if_deeprepres){
+  all_predictions <- bind_rows(all_predictions, deep_table)
+}
+
+if(if_XGBoost){
+  all_predictions <- bind_rows(all_predictions, XGB_table)
+}
+
+if(if_TabPFN){
+  all_predictions <- bind_rows(all_predictions, PFN_table)
 }
 
 ```
@@ -692,7 +737,7 @@ ggsave(Fig2D, filename = paste0(plot_folder,'Fig2D.pdf'))
 
 
 ### Figure 2E - Box plot, Random forest vs TabPFN vs XGBoost
-```{r}
+```{r, eval=if_XGBoost}
 Fig2E <- all_predictions_meta %>%
   filter(method == "Random_forest" | method == "TabPFN" | method == "XGBoost") %>%
   filter(tax_level == "ASV") %>%
