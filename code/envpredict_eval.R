@@ -1,9 +1,4 @@
-if (!require("MLmetrics")) {
-    install.packages("MLmetrics")
-    library(MLmetrics)
-} else {
-    library(MLmetrics)
-}
+library(MLmetrics)
 
 ## Define margin lines
 par(mgp = c(2.2, 1, 0))
