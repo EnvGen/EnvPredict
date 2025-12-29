@@ -1,3 +1,10 @@
+if (!require("MLmetrics")) {
+    install.packages("MLmetrics")
+    library(MLmetrics)
+} else {
+    library(MLmetrics)
+}
+
 ## Define margin lines
 par(mgp = c(2.2, 1, 0))
 
@@ -25,6 +32,7 @@ rsquared <- function(predictions, actual) {
   
   return(r_squared)
 }
+
 
 ### 1. ML Physchem predictions from either 16S-ASVs or plankton microscopy ###
 
@@ -56,6 +64,7 @@ for (res_fol in 1:2) {
   for (i in 1:length(prediction_files)) {
     pred_matr = as.matrix(read.delim(paste(results_folder, prediction_files[i], sep = "/"), row.names = 1))
     obs_matr = as.matrix(read.delim(paste(results_folder, observation_files[i], sep = "/"), row.names = 1))
+    
     for (j in 1:nrow(pred_matr)) {
       cor_matr[j,i] = rsquared(pred_matr[j,], obs_matr[j,])
       #cor_matr[j,i] = (cor_matr[j,i])^2 # r-squared
@@ -122,24 +131,28 @@ colnames(cor_matr) = gsub("renomralized_matching_18","renorm_matching_18", colna
 rownames(cor_matr) = shared_genus
 length(shared_genus)
 num_samples = c()
+perc_positive = matrix(nrow = length(shared_genus), ncol = length(prediction_files))
+
 for (i in 1:length(prediction_files)) {
   pred_matr = as.matrix(read.delim(paste(results_folder, prediction_files[i], sep = "/"), row.names = 1))[shared_genus,]
   obs_matr = as.matrix(read.delim(paste(results_folder, observation_files[i], sep = "/"), row.names = 1))[shared_genus,]
   if(length(grep("direct_matching",prediction_files[i])) > 0){
+    pred_matr[pred_matr > 0] = 1
+    obs_matr[obs_matr > 0] = 1
     for (j in 1:nrow(pred_matr)) {
-      num_samples[j] = NA 
+      num_samples[j] = NA
       if (length(unique(obs_matr[j,])) > 0) { # if not all observations are the same
-        cor_matr[j,i] = round(summary(lm(obs_matr[j,] ~ pred_matr[j,]))$r.squared, 3)
-        #num_samples[j] = length(which(!is.na(obs_matr[j,])))
+        cor_matr[j,i] = round(F1_Score(obs_matr[j,], pred_matr[j,], positive = "1") , 3)
         num_samples[j] = length(which(obs_matr[j,] != 0))
       }
-    }
+  }
   }else{
+    pred_matr[pred_matr >= 0.5] = 1
+    pred_matr[pred_matr < 0.5] = 0
     for (j in 1:nrow(pred_matr)) {
-      num_samples[j] = NA 
+      num_samples[j] = NA
       if (length(unique(obs_matr[j,])) > 0) { # if not all observations are the same
-        cor_matr[j,i] = round(rsquared(pred_matr[j,], obs_matr[j,]) , 3)
-        #num_samples[j] = length(which(!is.na(obs_matr[j,])))
+        cor_matr[j,i] = round(F1_Score(obs_matr[j,], pred_matr[j,], positive = "1") , 3)
         num_samples[j] = length(which(obs_matr[j,] != 0))
       }
     }
@@ -164,19 +177,20 @@ layout(matrix(c(1,2,5,3,4,6), 2, 3, byrow = T))
 ix2 = c(4,2,3,1)
 par(mar = c(4,4,1,1))
 for (i in 1:length(ix2)) {
-  plot(num_samples, cor_matr[,ix2[i]], main = colnames(cor_matr)[ix2[i]], ylim = c(0,1), xlab = "Detected in nr samples", ylab = expression(paste("Coefficient of determination (", R^2, ")")), bg = group_colors[i], col = group_colors[i], pch = 21)
+  plot(num_samples, cor_matr[,ix2[i]], main = colnames(cor_matr)[ix2[i]], ylim = c(0,1), xlab = "Detected in nr samples", ylab = expression(paste("Efron's", R^2)), bg = group_colors[i], col = group_colors[i], pch = 21)
 }
 ix = which(num_samples > 50)
 par(mar = c(4,4,1,1))
 boxplot(
   cor_matr[ix,ix2[1]], cor_matr[ix,ix2[2]], cor_matr[ix,ix2[3]], cor_matr[ix,ix2[4]], 
-  names = colnames(cor_matr)[ix2], las = 3, ylab = expression(paste("Coefficient of determination (", R^2, ")")), col = group_colors 
+  names = colnames(cor_matr)[ix2], las = 3, ylab = expression(paste("Efron's", R^2)), col = group_colors, ylim = c(0,1) 
 )
 par(mar = c(4,4,1,1))
 plot(cor_matr[ix,ix2[4]], cor_matr[ix,ix2[3]], xlim = c(0,1), ylim = c(0,1), xlab = colnames(cor_matr)[ix2[4]], ylab = colnames(cor_matr)[ix2[3]], col = group_colors[4], bg = group_colors[3], pch = 21)
 lines(c(0,1), c(0,1))
 
 dev.off()
+
 
 ix = which(num_samples > 50)
 wilcox.test(cor_matr[ix,ix2[1]], cor_matr[ix,ix2[2]], paired = T)
@@ -213,26 +227,31 @@ num_samples = c()
 for (i in 1:length(prediction_files)) {
   pred_matr = as.matrix(read.delim(paste(results_folder, prediction_files[i], sep = "/"), row.names = 1))[shared_genus,]
   obs_matr = as.matrix(read.delim(paste(results_folder, observation_files[i], sep = "/"), row.names = 1))[shared_genus,]
+  
   if(length(grep("direct_matching",prediction_files[i])) > 0){
+    pred_matr[pred_matr > 0] = 1
+    obs_matr[obs_matr > 0] = 1
     for (j in 1:nrow(pred_matr)) {
-      num_samples[j] = NA 
+      num_samples[j] = NA
       if (length(unique(obs_matr[j,])) > 0) { # if not all observations are the same
-        cor_matr[j,i] = round(summary(lm(obs_matr[j,] ~ pred_matr[j,]))$r.squared, 3)
-        #num_samples[j] = length(which(!is.na(obs_matr[j,])))
+        cor_matr[j,i] = round(F1_Score(obs_matr[j,], pred_matr[j,], positive = "1") , 3)
         num_samples[j] = length(which(obs_matr[j,] != 0))
       }
     }
   }else{
+    pred_matr[pred_matr >= 0.5] = 1
+    pred_matr[pred_matr < 0.5] = 0
+    # obs_matr[obs_matr > 0] = 1
     for (j in 1:nrow(pred_matr)) {
-      num_samples[j] = NA 
+      num_samples[j] = NA
       if (length(unique(obs_matr[j,])) > 0) { # if not all observations are the same
-        cor_matr[j,i] = round(rsquared(pred_matr[j,], obs_matr[j,]) , 3)
-        #num_samples[j] = length(which(!is.na(obs_matr[j,])))
+        cor_matr[j,i] = round(F1_Score(obs_matr[j,], pred_matr[j,], positive = "1") , 3)
         num_samples[j] = length(which(obs_matr[j,] != 0))
       }
     }
   }
 }
+cor_matr = cor_matr[,1:4]
 ix = which(rowSums(is.na(cor_matr)) == 0)
 cor_matr = cor_matr[ix,]
 num_samples = num_samples[ix]
@@ -242,7 +261,7 @@ sample_labels = paste(rownames(cor_matr), " [", num_samples, "]", sep = "")
 
 group_colors <- c('#fec44f','#fe9929','#d95f0e','#993404')
 names(group_colors) <- c('ML Physchem', 'ML 16S', 'ML 18S', 'Match 18S')
-colnames(cor_matr) = c('Match 18S', 'ML 16S', 'ML 18S', 'ML Physchem', "Renormalized match 18s")
+colnames(cor_matr) = c('Match 18S', 'ML 16S', 'ML 18S', 'ML Physchem') #, "Renormalized match 18s")
 
 pdf(paste0(plot_folder, "predicting_zooplankton.pdf"),
     width = 9*0.8, height = 6*0.8)
@@ -251,13 +270,13 @@ layout(matrix(c(1,2,5,3,4,6), 2, 3, byrow = T))
 ix2 = c(4,2,3,1)
 par(mar = c(4,4,1,1))
 for (i in 1:length(ix2)) {
-  plot(num_samples, cor_matr[,ix2[i]], main = colnames(cor_matr)[ix2[i]], ylim = c(0,1), xlab = "Detected in nr samples", ylab = expression(paste("Coefficient of determination (", R^2, ")")), bg = group_colors[i], col = group_colors[i], pch = 21)
+  plot(num_samples, cor_matr[,ix2[i]], main = colnames(cor_matr)[ix2[i]], ylim = c(0,1), xlab = "Detected in nr samples", ylab = expression(paste("Efron's", R^2)), bg = group_colors[i], col = group_colors[i], pch = 21)
 }
 ix = which(num_samples > 50)
 par(mar = c(4,4,1,1))
 boxplot(
   cor_matr[ix,ix2[1]], cor_matr[ix,ix2[2]], cor_matr[ix,ix2[3]], cor_matr[ix,ix2[4]], 
-  names = colnames(cor_matr)[ix2], las = 3, ylab = expression(paste("Coefficient of determination (", R^2, ")")), col = group_colors 
+  names = colnames(cor_matr)[ix2], las = 3, ylab = expression(paste("Efron's", R^2)), col = group_colors, ylim = c(0, 1) 
 )
 par(mar = c(4,4,1,1))
 plot(cor_matr[ix,ix2[4]], cor_matr[ix,ix2[3]], xlim = c(0,1), ylim = c(0,1), xlab = colnames(cor_matr)[ix2[4]], ylab = colnames(cor_matr)[ix2[3]], col = group_colors[4], bg = group_colors[3], pch = 21)
