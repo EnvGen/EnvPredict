@@ -31,7 +31,9 @@ interannual_comparison_linear_regression.Rmd - runs an analysis analogous to int
 
 A Snakefile is available in the main directory of the repository, which allows to rerun most of the analysis with snakemake. The scripts that are run by the pipeline are highlighted in the section above, and are visualized in the running order in dag.png and rulegraph.png. We decided not to include the analysis of Deep Representations in the pipeline, since they have been obtained using a GPU and a considerable amount of computation, yielding poor results. We have not included the Ecological Quality Ratios (EQRs) analysis in the pipeline, and required extra data preparation steps.
 
-By adjusting the reading data section of envpredict_core.R, this script can be adjusted to other datasets. Consider skipping the TabPNF part (by commenting out the rule and its output from the Snakefile and the parts that depend on this analysis from Plot_Figure_2.Rmd), since it takes a considerable amount of time to run (~two days on one node, 256 cores, of Dardel, the KTH HPC cluster).
+The pipeline is by default run in a mode skipping the analysis of Deep Representations, as well as the XGBoost- and TabPFN-based predicitons and their analysis. These setting can be changed by modifying config.yml file. Mind that adding XGBoost and/or TabPFN will substantially increase the runtime of the pipeline.
+
+By adjusting the reading data section of envpredict_core.R, this script can be adjusted to other datasets. 
 
 ## Running the Ecological Quality Ratios (EQRs) analysis with HEAT
 
