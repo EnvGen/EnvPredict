@@ -1,4 +1,9 @@
-library(MLmetrics)
+if (!require("MLmetrics")) {
+    install.packages("MLmetrics")
+    library(MLmetrics)
+} else {
+    library(MLmetrics)
+}
 
 ## Define margin lines
 par(mgp = c(2.2, 1, 0))
@@ -289,3 +294,6 @@ wilcox.test(cor_matr[ix,'Match 18S'], cor_matr[ix,'ML 18S'], paired = T)
 wilcox.test(cor_matr[ix,'Match 18S'], cor_matr[ix,'ML 16S'], paired = T)
 wilcox.test(cor_matr[ix,'Match 18S'], cor_matr[ix,'ML Physchem'], paired = T)
 wilcox.test(cor_matr[ix,'ML 18S'], cor_matr[ix,'ML 16S'], paired = T)
+
+median(cor_matr[ix,2:4])
+median(cor_matr[ix,1])
